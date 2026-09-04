@@ -107,7 +107,7 @@ class TelegramTmaService {
   }
 
   getTelegramStoreLink(storeSlug) {
-    return `https://t.me/${this.botUsername}/app?startapp=${storeSlug}`;
+    return `https://t.me/${this.botUsername}?start=${storeSlug}`;
   }
 
   shareStoreToTelegram(store) {

@@ -115,16 +115,26 @@ app.post('/api/send-order-alert', async (req, res) => {
 async function sendWelcomeMessage(chatId, firstName, startParam = '') {
   const storeUrl = startParam ? `${WEB_APP_URL}/#store=${startParam}` : WEB_APP_URL;
 
-  const text = `👋 សួស្តី **${firstName || 'ម្ចាស់អាជីវកម្ម'}**!\n\n` +
+  let text = `👋 សួស្តី **${firstName || 'ម្ចាស់អាជីវកម្ម'}**!\n\n` +
     `សូមស្វាគមន៍មកកាន់ **OmniMini Platform** ⚡\n` +
     `ប្រព័ន្ធបង្កើត និងគ្រប់គ្រង Mini App ហាងផ្ទាល់ខ្លួននៅលើ Telegram ជាមួយ Bakong KHQR Payment។\n\n` +
     `👇 **សូមចុចប៊ូតុងខាងក្រោមដើម្បីបើក Mini App៖**`;
+
+  let buttonText = '🛍️ បើកហាង Mini App (Open App)';
+
+  if (startParam) {
+    text = `👋 សួស្តី **${firstName || 'អតិថិជន'}**!\n\n` +
+      `សូមស្វាគមន៍មកកាន់ **Mini App ហាងនៅលើ Telegram** 🛍️\n` +
+      `អ្នកអាចជ្រើសរើសទំនិញ ដាក់កន្ត្រក និងទូទាត់តាម Bakong KHQR បានយ៉ាងងាយស្រួល។\n\n` +
+      `👇 **សូមចុចប៊ូតុងខាងក្រោមដើម្បីចូលទិញទំនិញ៖**`;
+    buttonText = '🛍️ ចូលទិញទំនិញក្នុងហាង (Open Store)';
+  }
 
   const replyMarkup = {
     inline_keyboard: [
       [
         {
-          text: '🛍️ បើកហាង Mini App (Open App)',
+          text: buttonText,
           web_app: {
             url: storeUrl
           }
