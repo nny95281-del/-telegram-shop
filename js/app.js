@@ -1,10 +1,12 @@
 /**
- * Main Application Coordinator & Router (with Telegram Mini App Support)
+ * Main Application Coordinator & Smart 3-Tier Router
+ * Separates Platform Marketplace, Merchant Studio & Pure Customer Storefront
  */
 
 class App {
   constructor() {
     this.currentView = "marketplace";
+    this.isCustomerDirectLaunch = false;
     this.init();
   }
 
@@ -61,7 +63,8 @@ class App {
       if (startParam) {
         const store = window.storeEngine.getStoreBySlug(startParam) || window.storeEngine.getStoreById(startParam);
         if (store) {
-          this.openStoreMiniApp(store.id);
+          this.isCustomerDirectLaunch = true;
+          this.openStoreMiniApp(store.id, true);
           return;
         }
       }
@@ -76,7 +79,7 @@ class App {
     const u = window.telegramTma.user;
     userContainer.innerHTML = `
       <div class="tg-user-pill" title="Telegram User ID: ${u.id}">
-        <img src="${u.photoUrl}" class="tg-avatar-img" alt="${u.firstName}">
+        <img src="${u.photoUrl}" class="tg-avatar-img" alt="${u.firstName}" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80'">
         <span>${u.username ? '@' + u.username : u.firstName}</span>
         <span class="tg-status-dot"></span>
       </div>
@@ -97,7 +100,8 @@ class App {
       const storeSlug = params.get("store");
       const store = window.storeEngine.getStoreBySlug(storeSlug) || window.storeEngine.getStoreById(storeSlug);
       if (store) {
-        this.openStoreMiniApp(store.id);
+        this.isCustomerDirectLaunch = true;
+        this.openStoreMiniApp(store.id, true);
         return;
       }
     }
@@ -113,8 +117,11 @@ class App {
 
     if (viewName === "store") {
       document.body.classList.add("in-store-view");
+      if (this.isCustomerDirectLaunch) {
+        document.body.classList.add("customer-mode");
+      }
     } else {
-      document.body.classList.remove("in-store-view");
+      document.body.classList.remove("in-store-view", "customer-mode");
     }
 
     document.querySelectorAll(".nav-btn").forEach(btn => {
@@ -209,7 +216,7 @@ class App {
           </div>
           <div class="store-card-body">
             <div class="store-avatar-row">
-              <img src="${store.logo}" class="store-logo-img" alt="${sName}">
+              <img src="${store.logo}" class="store-logo-img" alt="${sName}" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=200&auto=format&fit=crop&q=80'">
               <div class="store-rating-badge">★ ${store.rating || 4.9}</div>
             </div>
             <h3 class="store-title">${sName}</h3>
@@ -257,11 +264,15 @@ class App {
     this.renderMarketplace();
   }
 
-  openStoreMiniApp(storeId) {
+  openStoreMiniApp(storeId, isDirect = false) {
     const store = window.storeEngine.getStoreById(storeId);
     if (!store) return;
 
     if (window.telegramTma) window.telegramTma.hapticImpact("medium");
+
+    if (isDirect) {
+      this.isCustomerDirectLaunch = true;
+    }
 
     window.storeView.setStore(store);
     this.switchView("store");
@@ -270,6 +281,7 @@ class App {
 
   openStoreInBuilder(storeId) {
     if (window.telegramTma) window.telegramTma.hapticImpact("light");
+    this.isCustomerDirectLaunch = false;
     window.storeBuilder.setCurrentStore(storeId);
     this.switchView("builder");
   }
@@ -316,23 +328,23 @@ class App {
       container.innerHTML = `
         <div style="text-align: center; color: var(--text-muted); padding: 4rem 1rem;">
           <div style="font-size: 3rem; margin-bottom: 1rem;">📦</div>
-          <h3>No orders placed yet</h3>
-          <p>Explore mini apps in the marketplace and place your first order!</p>
-          <button class="btn btn-primary" style="margin-top: 1.5rem;" onclick="window.app.switchView('marketplace')">Explore Marketplace</button>
+          <h3>មិនទាន់មានការកុម្ម៉ង់នៅឡើយទេ</h3>
+          <p>រុករកទំនិញក្នុងហាង និងធ្វើការកុម្ម៉ង់ដំបូងរបស់អ្នកឥឡូវនេះ!</p>
+          <button class="btn btn-primary" style="margin-top: 1.5rem;" onclick="window.app.switchView('marketplace')">🛍️ រុករកហាង</button>
         </div>
       `;
       return;
     }
 
     container.innerHTML = orders.map(ord => `
-      <div class="store-card" style="margin-bottom: 1.25rem; padding: 1.25rem;">
-        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem; margin-bottom: 0.75rem;">
+      <div class="store-card" style="margin-bottom: 1.25rem; padding: 1.25rem; border-radius: 16px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 0.75rem; margin-bottom: 0.75rem;">
           <div>
-            <h3 style="color: #FFFFFF; font-size: 1.05rem;">${ord.storeName}</h3>
+            <h3 style="color: #FFFFFF; font-size: 1.05rem; font-weight: 800;">${ord.storeName}</h3>
             <span style="font-size: 0.75rem; color: var(--text-muted);">Order #${ord.id} • ${new Date(ord.createdAt).toLocaleString()}</span>
           </div>
           <div>
-            <span style="font-size: 0.8rem; font-weight: 700; background: rgba(99, 102, 241, 0.2); color: #A5B4FC; padding: 0.3rem 0.7rem; border-radius: 99px;">
+            <span style="font-size: 0.78rem; font-weight: 700; background: rgba(99, 102, 241, 0.2); color: #A5B4FC; padding: 0.3rem 0.7rem; border-radius: 99px;">
               ${ord.status}
             </span>
           </div>
@@ -341,18 +353,18 @@ class App {
         <div style="margin-bottom: 0.75rem;">
           ${ord.items.map(i => `
             <div style="display: flex; justify-content: space-between; font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 0.3rem;">
-              <span>${i.qty}x ${i.name} ${i.options?.length ? `<small>(${i.options.join(', ')})</small>` : ''}</span>
+              <span>${i.qty}x <strong>${i.name}</strong> ${i.options?.length ? `<small>(${i.options.join(', ')})</small>` : ''}</span>
               <span style="color: #FFFFFF; font-weight: 600;">$${i.lineTotal.toFixed(2)}</span>
             </div>
           `).join('')}
         </div>
 
-        <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-color); padding-top: 0.75rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 0.75rem;">
           <div style="font-size: 0.8rem; color: var(--text-muted);">
-            Payment: <strong style="color: ${ord.paymentStatus === 'PAID' ? '#10B981' : '#F59E0B'}">${ord.paymentMethod} (${ord.paymentStatus})</strong>
+            ទូទាត់: <strong style="color: ${ord.paymentStatus === 'PAID' ? '#10B981' : '#F59E0B'}">${ord.paymentMethod} (${ord.paymentStatus})</strong>
           </div>
           <div style="text-align: right;">
-            <div style="font-size: 1.1rem; font-weight: 800; color: var(--accent-gold);">$${ord.total.toFixed(2)}</div>
+            <div style="font-size: 1.15rem; font-weight: 800; color: #F59E0B;">$${ord.total.toFixed(2)}</div>
             <div style="font-size: 0.75rem; color: var(--text-muted);">${ord.totalKhr.toLocaleString()} ៛</div>
           </div>
         </div>

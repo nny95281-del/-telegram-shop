@@ -449,3 +449,9 @@ input:checked + .slider:before {
     position: static;
   }
 }
+
+@media (max-width: 768px) {
+  .simulator-container {
+    display: none;
+  }
+}
