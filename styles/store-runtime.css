@@ -7,8 +7,13 @@
   color: var(--store-text, #F8FAFC);
   font-family: var(--store-font, 'Plus Jakarta Sans', 'Kantumruy Pro', sans-serif);
   min-height: 100vh;
+  max-width: 520px;
+  margin: 0 auto;
   position: relative;
-  padding-bottom: 110px; /* Space for floating cart */
+  padding-bottom: 120px; /* Space for floating cart */
+  box-shadow: 0 0 50px rgba(0, 0, 0, 0.7);
+  border-left: 1px solid rgba(255, 255, 255, 0.05);
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 /* Store Navigation Bar */
@@ -120,37 +125,43 @@
 
 /* Announcement Bar */
 .runtime-announcement {
-  background: linear-gradient(90deg, #0F766E 0%, #14B8A6 100%);
+  background: linear-gradient(90deg, rgba(15, 118, 110, 0.9) 0%, rgba(20, 184, 166, 0.9) 100%);
   color: #FFFFFF;
-  font-size: 0.78rem;
+  font-size: 0.8rem;
   font-weight: 700;
-  padding: 0.55rem 1rem;
+  padding: 0.65rem 1rem;
   text-align: center;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.4rem;
-  box-shadow: 0 2px 10px rgba(15, 118, 110, 0.3);
+  gap: 0.5rem;
+  margin: 0.65rem 0.85rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(15, 118, 110, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 /* Hero Banner */
 .runtime-hero {
   position: relative;
-  height: 165px;
+  height: 185px;
   background-size: cover;
   background-position: center;
   overflow: hidden;
   display: flex;
   align-items: flex-end;
   padding: 1.25rem;
-  margin-bottom: 0.75rem;
+  margin: 0.5rem 0.85rem 0.85rem 0.85rem;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
 
 .runtime-hero::before {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.85) 100%);
+  background: linear-gradient(180deg, rgba(0,0,0,0.15) 0%, rgba(11, 15, 25, 0.88) 100%);
 }
 
 .runtime-hero-content {
@@ -159,15 +170,15 @@
 }
 
 .runtime-hero-content h3 {
-  font-size: 1.25rem;
+  font-size: 1.2rem;
   font-weight: 800;
   color: #FFFFFF;
-  margin-bottom: 0.2rem;
+  margin-bottom: 0.25rem;
   text-shadow: 0 2px 8px rgba(0,0,0,0.8);
 }
 
 .runtime-hero-content p {
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   color: #E2E8F0;
   text-shadow: 0 1px 4px rgba(0,0,0,0.8);
 }
