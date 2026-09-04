@@ -107,7 +107,7 @@ class TelegramTmaService {
   }
 
   getTelegramStoreLink(storeSlug) {
-    return `https://t.me/${this.botUsername}?start=${storeSlug}`;
+    return `https://telegram-shop-6m0d.onrender.com/#store=${storeSlug}`;
   }
 
   shareStoreToTelegram(store) {
@@ -115,7 +115,7 @@ class TelegramTmaService {
     this.hapticImpact("light");
     const link = this.getTelegramStoreLink(store.slug || store.id);
     const storeName = store.nameKh || store.name;
-    const text = encodeURIComponent(`🛍️ សូមស្វាគមន៍មកកាន់ Mini App ហាង ${storeName} លើ Telegram!\n\n👇 ចុច Link ខាងក្រោមដើម្បីចូលទិញទំនិញ និងទូទាត់តាម Bakong KHQR បានភ្លាមៗ៖\n${link}`);
+    const text = encodeURIComponent(`🛍️ សូមស្វាគមន៍មកកាន់ ${storeName}!\n\n👇 ចុច Link ខាងក្រោមដើម្បីចូលទិញទំនិញ និងទូទាត់តាម Bakong KHQR បានភ្លាមៗ៖\n${link}`);
     
     const telegramShareUrl = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${text}`;
 

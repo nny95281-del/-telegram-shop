@@ -408,12 +408,6 @@ async function sendWelcomeMessage(chatId, firstName, startParam = '') {
             url: storeUrl
           }
         }
-      ],
-      [
-        {
-          text: '🌐 បើកលើ Web Browser',
-          url: storeUrl
-        }
       ]
     ]
   };
