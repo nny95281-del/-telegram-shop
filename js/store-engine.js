@@ -113,14 +113,15 @@ class StoreEngine {
 
   createStore(storeData) {
     const newId = "store_" + Date.now();
-    const slug = (storeData.name || "new-store")
+    let cleanSlug = (storeData.name || storeData.nameKh || "store")
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/(^-|-$)/g, "");
+    if (!cleanSlug) cleanSlug = "store";
 
     const newStore = {
       id: newId,
-      slug: `${slug}-${Math.floor(100 + Math.random() * 900)}`,
+      slug: `${cleanSlug}-${Math.floor(100 + Math.random() * 900)}`,
       name: storeData.name || "My New Mini App",
       nameKh: storeData.nameKh || "ហាង Mini App ថ្មីរបស់ខ្ញុំ",
       tagline: storeData.tagline || "Welcome to our store!",
