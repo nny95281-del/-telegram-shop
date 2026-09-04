@@ -254,6 +254,11 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// SPA Catch-All Route (supports /store/:slug, /s/:slug, etc.)
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
+
 // Helper: Telegram API Request
 function telegramRequest(method, payload) {
   return new Promise((resolve, reject) => {

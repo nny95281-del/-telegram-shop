@@ -14,14 +14,46 @@ class App {
   detectInitialRoute() {
     const hash = window.location.hash || "";
     const search = window.location.search || "";
-    const isStoreLink = hash.includes("store=") || search.includes("store=") || search.includes("startapp=");
+    const pathname = window.location.pathname || "";
 
-    if (isStoreLink) {
+    let storeSlug = null;
+    
+    // Check search params
+    const searchParams = new URLSearchParams(search);
+    if (searchParams.has("store")) storeSlug = searchParams.get("store");
+    if (searchParams.has("startapp")) storeSlug = searchParams.get("startapp");
+    if (searchParams.has("tgWebAppStartParam")) storeSlug = searchParams.get("tgWebAppStartParam");
+
+    // Check hash params
+    if (!storeSlug && hash) {
+      const cleanHash = hash.replace(/^#\/?/, "");
+      if (cleanHash.startsWith("store=")) {
+        storeSlug = cleanHash.replace("store=", "");
+      } else {
+        const hashParams = new URLSearchParams(cleanHash.includes("?") ? cleanHash.split("?")[1] : cleanHash);
+        if (hashParams.has("store")) storeSlug = hashParams.get("store");
+        if (hashParams.has("startapp")) storeSlug = hashParams.get("startapp");
+        if (hashParams.has("tgWebAppStartParam")) storeSlug = hashParams.get("tgWebAppStartParam");
+      }
+    }
+
+    // Check pathname (e.g. /store/mn-512 or /s/mn-512)
+    if (!storeSlug && (pathname.includes("/store/") || pathname.includes("/s/"))) {
+      const parts = pathname.split("/");
+      storeSlug = parts[parts.length - 1];
+    }
+
+    // Check Telegram WebApp SDK start_param
+    if (!storeSlug && window.telegramTma) {
+      const startParam = window.telegramTma.getStartParam();
+      if (startParam) storeSlug = startParam;
+    }
+
+    if (storeSlug) {
       this.isCustomerDirectLaunch = true;
       this.currentView = "store";
       document.body.classList.add("in-store-view", "customer-mode");
       
-      // Pre-show store container with loading skeleton
       const storeViewEl = document.getElementById("view_store");
       const marketViewEl = document.getElementById("view_marketplace");
       if (marketViewEl) marketViewEl.style.display = "none";
@@ -31,9 +63,9 @@ class App {
         if (runtime) {
           runtime.innerHTML = `
             <div style="min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; text-align: center; color: #FFFFFF; background: #0B0F19;">
-              <div style="width: 54px; height: 54px; border: 4px solid rgba(16, 185, 129, 0.2); border-top-color: #10B981; border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 1.5rem;"></div>
-              <h3 style="font-size: 1.25rem; font-weight: 800; margin-bottom: 0.5rem; letter-spacing: -0.01em;">កំពុងបើកដំណើរការហាង...</h3>
-              <p style="font-size: 0.85rem; color: #94A3B8; max-width: 320px;">សូមរង់ចាំបន្តិច ប្រព័ន្ធកំពុងទាញយកទិន្នន័យទំនិញ និង Bakong KHQR...</p>
+              <div style="width: 50px; height: 50px; border: 4px solid rgba(16, 185, 129, 0.2); border-top-color: #10B981; border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 1.25rem;"></div>
+              <h3 style="font-size: 1.25rem; font-weight: 800; margin-bottom: 0.4rem;">កំពុងបើកដំណើរការហាង...</h3>
+              <p style="font-size: 0.85rem; color: #94A3B8; max-width: 320px;">សូមរង់ចាំបន្តិច ប្រព័ន្ធកំពុងទាញយកទិន្នន័យ...</p>
             </div>
             <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
           `;
@@ -78,8 +110,8 @@ class App {
     // Handle hash change routing
     window.addEventListener("hashchange", () => this.handleHashRoute());
 
-    // Check Telegram start_param (Direct Store Launch via Telegram Bot Link)
-    this.checkTelegramStartParam();
+    // Check Telegram start_param & URL Route
+    this.handleHashRoute();
 
     // Render Telegram User status
     this.renderTelegramUserBadge();
@@ -90,21 +122,7 @@ class App {
   }
 
   async checkTelegramStartParam() {
-    if (window.telegramTma) {
-      const startParam = window.telegramTma.getStartParam();
-      if (startParam) {
-        let store = window.storeEngine.getStoreBySlug(startParam) || window.storeEngine.getStoreById(startParam);
-        if (!store) {
-          store = await window.storeEngine.fetchStoreBySlugAsync(startParam);
-        }
-        if (store) {
-          this.isCustomerDirectLaunch = true;
-          this.openStoreMiniApp(store.id, true);
-          return;
-        }
-      }
-    }
-    this.handleHashRoute();
+    return this.handleHashRoute();
   }
 
   renderTelegramUserBadge() {
@@ -122,19 +140,41 @@ class App {
   }
 
   async handleHashRoute() {
-    const hash = window.location.hash.replace("#", "");
+    const hash = window.location.hash || "";
     const search = window.location.search || "";
+    const pathname = window.location.pathname || "";
 
     let storeSlug = null;
-    if (hash.includes("store=")) {
-      const params = new URLSearchParams(hash.startsWith("?") ? hash : "?" + hash);
-      storeSlug = params.get("store");
-    } else if (search.includes("store=")) {
-      const params = new URLSearchParams(search);
-      storeSlug = params.get("store");
-    } else if (search.includes("startapp=")) {
-      const params = new URLSearchParams(search);
-      storeSlug = params.get("startapp");
+    
+    // Check search params
+    const searchParams = new URLSearchParams(search);
+    if (searchParams.has("store")) storeSlug = searchParams.get("store");
+    if (searchParams.has("startapp")) storeSlug = searchParams.get("startapp");
+    if (searchParams.has("tgWebAppStartParam")) storeSlug = searchParams.get("tgWebAppStartParam");
+
+    // Check hash params
+    if (!storeSlug && hash) {
+      const cleanHash = hash.replace(/^#\/?/, "");
+      if (cleanHash.startsWith("store=")) {
+        storeSlug = cleanHash.replace("store=", "");
+      } else {
+        const hashParams = new URLSearchParams(cleanHash.includes("?") ? cleanHash.split("?")[1] : cleanHash);
+        if (hashParams.has("store")) storeSlug = hashParams.get("store");
+        if (hashParams.has("startapp")) storeSlug = hashParams.get("startapp");
+        if (hashParams.has("tgWebAppStartParam")) storeSlug = hashParams.get("tgWebAppStartParam");
+      }
+    }
+
+    // Check pathname (e.g. /store/mn-512 or /s/mn-512)
+    if (!storeSlug && (pathname.includes("/store/") || pathname.includes("/s/"))) {
+      const parts = pathname.split("/");
+      storeSlug = parts[parts.length - 1];
+    }
+
+    // Check Telegram WebApp SDK start_param
+    if (!storeSlug && window.telegramTma) {
+      const startParam = window.telegramTma.getStartParam();
+      if (startParam) storeSlug = startParam;
     }
 
     if (storeSlug) {
@@ -167,7 +207,8 @@ class App {
       }
     }
 
-    const params = new URLSearchParams(hash.startsWith("?") ? hash : "?" + hash);
+    const cleanHash = hash.replace(/^#\/?/, "");
+    const params = new URLSearchParams(cleanHash.includes("?") ? cleanHash.split("?")[1] : cleanHash);
     if (params.has("view")) {
       const v = params.get("view");
       this.switchView(v);
