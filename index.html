@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>OmniMini - Telegram Mini App Platform & Merchant Studio</title>
+  <meta name="description" content="ប្រព័ន្ធបង្កើត Mini App ហាងលើ Telegram សម្រាប់ម្ចាស់អាជីវកម្ម (Telegram Mini App Store Builder & Marketplace)">
+  
+  <!-- Telegram WebApp SDK -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="styles/main.css">
+  <link rel="stylesheet" href="styles/marketplace.css">
+  <link rel="stylesheet" href="styles/builder.css">
+  <link rel="stylesheet" href="styles/store-runtime.css">
+  <link rel="stylesheet" href="styles/telegram.css">
+</head>
+<body>
+
+  <!-- Telegram In-App Live Order Notification Banner (Slides down when customer orders) -->
+  <div id="telegramOrderAlertBanner" class="tg-order-alert-banner">
+    <div class="tg-alert-icon">🔔</div>
+    <div class="tg-alert-content">
+      <div class="tg-alert-top">
+        <span class="tg-alert-title">Telegram Order Alert! 🚀</span>
+        <span id="tgAlertAmount" class="tg-alert-amount">$0.00</span>
+      </div>
+      <div class="tg-alert-details">
+        <strong id="tgAlertStoreName" style="color:#FFFFFF;">Store</strong> — Order <span id="tgAlertOrderId">#ORD-0000</span>
+      </div>
+      <div id="tgAlertItems" style="font-size: 0.78rem; color: #70C5FB; margin-bottom: 0.2rem;"></div>
+      <div class="tg-alert-meta">
+        👤 <span id="tgAlertCustomer">Customer</span> • 📍 <span id="tgAlertAddress">Address</span>
+      </div>
+    </div>
+    <button class="tg-alert-close" onclick="document.getElementById('telegramOrderAlertBanner').classList.remove('show')">✕</button>
+  </div>
+
+  <!-- Top App Navigation -->
+  <header class="app-header">
+    <div class="brand-wrapper" onclick="window.app.switchView('marketplace')">
+      <div class="brand-icon">⚡</div>
+      <div class="brand-text">
+        <h1 data-i18n="superAppTitle">OmniMini Platform</h1>
+        <p data-i18n="superAppSubtitle">Telegram Mini App Store Builder</p>
+      </div>
+    </div>
+
+    <!-- Telegram User Profile Pill -->
+    <div id="headerTelegramUser"></div>
+
+    <nav class="nav-tabs">
+      <button class="nav-btn active" data-view="marketplace">
+        <span data-i18n="exploreStores">🛍️ រុករកហាង</span>
+      </button>
+      <button class="nav-btn" data-view="builder">
+        <span data-i18n="merchantStudio">🛠️ Studio</span>
+      </button>
+      <button class="nav-btn" data-view="orders">
+        <span data-i18n="myOrders">📦 ការកុម្ម៉ង់</span>
+        <span id="headerOrdersBadge" class="badge-count" style="display:none;">0</span>
+      </button>
+    </nav>
+
+    <div class="header-actions">
+      <div class="lang-toggle">
+        <button class="lang-btn active" data-lang="km">🇰🇭 ខ្មែរ</button>
+        <button class="lang-btn" data-lang="en">🇬🇧 EN</button>
+      </div>
+      <button class="btn btn-emerald btn-sm" onclick="window.app.openCreateStoreModal()">
+        <span data-i18n="createNewStore">+ បង្កើតហាង</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="main-content">
+
+    <!-- VIEW 1: SUPER APP MARKETPLACE -->
+    <section id="view_marketplace" class="view-container">
+      <div class="marketplace-container">
+        
+        <!-- Hero Section -->
+        <div class="marketplace-hero">
+          <div class="hero-content">
+            <div class="hero-badge">✈️ Official Telegram Mini-App Platform</div>
+            <h2>បង្កើត និងបើកដំណើរការ Mini App ហាងផ្ទាល់ខ្លួនលើ Telegram ក្នុង ១ នាទី</h2>
+            <p>អនុញ្ញាតឱ្យម្ចាស់អាជីវកម្មរៀបចំ Theme ពណ៌, បញ្ជីមុខទំនិញ/Menu, ទទួលបាន Telegram Direct Link (`t.me/YourBot?startapp=store`) និងទទួលការទូទាត់តាម Bakong KHQR បានយ៉ាងងាយស្រួលបំផុត។</p>
+            <div class="hero-actions">
+              <button class="btn btn-gradient btn-lg" onclick="window.app.openCreateStoreModal()">
+                ✨ បង្កើត Mini App លើ Telegram
+              </button>
+              <button class="btn btn-secondary btn-lg" onclick="document.getElementById('marketplaceSearchInput').focus()">
+                🔍 ស្វែងរកហាង
+              </button>
+            </div>
+          </div>
+          <div class="hero-stats">
+            <div class="stat-item">
+              <span class="stat-value">500+</span>
+              <span class="stat-label">Active Stores</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-value">99.9%</span>
+              <span class="stat-label">KHQR Success</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-value">Instant</span>
+              <span class="stat-label">Telegram Alerts</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Search & Filter Toolbar -->
+        <div class="marketplace-toolbar">
+          <div class="search-box-wrapper">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="marketplaceSearchInput" placeholder="ស្វែងរកហាង ឬមុខទំនិញ..." oninput="window.app.renderMarketplace()" data-i18n="searchStores">
+          </div>
+
+          <div class="category-pills">
+            <button class="cat-pill active" data-category="all" onclick="window.app.filterMarketplaceCategory(this)">
+              🌟 ទាំងអស់
+            </button>
+            <button class="cat-pill" data-category="cafe" onclick="window.app.filterMarketplaceCategory(this)">
+              ☕ កាហ្វេ & ភេសជ្ជៈ
+            </button>
+            <button class="cat-pill" data-category="fashion" onclick="window.app.filterMarketplaceCategory(this)">
+              👗 សម្លៀកបំពាក់
+            </button>
+            <button class="cat-pill" data-category="electronics" onclick="window.app.filterMarketplaceCategory(this)">
+              ⚡ គ្រឿងអេឡិចត្រូនិច
+            </button>
+          </div>
+        </div>
+
+        <!-- Store Grid -->
+        <div id="marketplaceStoreGrid" class="store-grid">
+          <!-- Dynamic stores injected by app.js -->
+        </div>
+
+      </div>
+    </section>
+
+    <!-- VIEW 2: MERCHANT STUDIO / BUILDER -->
+    <section id="view_builder" class="view-container" style="display: none;">
+      <div class="builder-layout">
+
+        <!-- Top store selector -->
+        <div class="builder-topbar">
+          <div class="store-selector-group">
+            <label>កំពុងកែសម្រួលហាង (Active Store):</label>
+            <select id="builderStoreSelect" class="store-select-dropdown" onchange="window.storeBuilder.setCurrentStore(this.value)">
+              <!-- Populated by JS -->
+            </select>
+          </div>
+          <div class="builder-topbar-actions">
+            <button class="btn btn-telegram btn-sm" onclick="window.telegramTma.shareStoreToTelegram(window.storeBuilder.getCurrentStore())">
+              ✈️ Share to Telegram
+            </button>
+            <button class="btn btn-secondary btn-sm" onclick="window.app.openStoreMiniApp(window.storeBuilder.getCurrentStore()?.id)">
+              👁️ ទម្រង់ពេញ (Full App)
+            </button>
+            <button class="btn btn-emerald btn-sm" onclick="window.app.openCreateStoreModal()">
+              + បង្កើតហាងថ្មី
+            </button>
+          </div>
+        </div>
+
+        <!-- Left Column: Customizer Tabs -->
+        <div class="builder-controls-panel">
+          <div class="builder-nav-tabs">
+            <button class="builder-tab-btn active" data-tab="identity" onclick="window.storeBuilder.switchTab('identity')">
+              🎨 <span data-i18n="tabIdentity">Theme & Branding</span>
+            </button>
+            <button class="builder-tab-btn" data-tab="blocks" onclick="window.storeBuilder.switchTab('blocks')">
+              🧱 <span data-i18n="tabBlocks">Layout Blocks</span>
+            </button>
+            <button class="builder-tab-btn" data-tab="products" onclick="window.storeBuilder.switchTab('products')">
+              📦 <span data-i18n="tabProducts">Menu & Products</span>
+            </button>
+            <button class="builder-tab-btn" data-tab="payment" onclick="window.storeBuilder.switchTab('payment')">
+              💳 <span data-i18n="tabPayment">KHQR Payment</span>
+            </button>
+            <button class="builder-tab-btn" data-tab="orders" onclick="window.storeBuilder.switchTab('orders')">
+              📊 <span data-i18n="tabOrders">Orders</span>
+            </button>
+            <button class="builder-tab-btn" data-tab="share" onclick="window.storeBuilder.switchTab('share')">
+              🔗 <span data-i18n="tabShare">Share & Telegram</span>
+            </button>
+          </div>
+
+          <div class="builder-tab-content">
+            
+            <!-- TAB 1: IDENTITY & THEME -->
+            <div id="tab_identity" class="tab-pane active">
+              
+              <div class="form-group">
+                <label class="form-label" data-i18n="presetThemes">ជ្រើសរើស Theme ស្អាតៗរៀបចំស្រាប់ (Preset Themes):</label>
+                <div class="theme-presets-grid">
+                  <div class="preset-chip" onclick="window.storeBuilder.applyPresetTheme('emerald')">
+                    <div class="preset-color-dots">
+                      <span class="color-dot" style="background: #0F766E;"></span>
+                      <span class="color-dot" style="background: #14B8A6;"></span>
+                      <span class="color-dot" style="background: #F59E0B;"></span>
+                    </div>
+                    <span>Emerald Cafe</span>
+                  </div>
+                  <div class="preset-chip" onclick="window.storeBuilder.applyPresetTheme('rose')">
+                    <div class="preset-color-dots">
+                      <span class="color-dot" style="background: #E11D48;"></span>
+                      <span class="color-dot" style="background: #BE123C;"></span>
+                      <span class="color-dot" style="background: #FB7185;"></span>
+                    </div>
+                    <span>Rose Fashion</span>
+                  </div>
+                  <div class="preset-chip" onclick="window.storeBuilder.applyPresetTheme('cyberpunk')">
+                    <div class="preset-color-dots">
+                      <span class="color-dot" style="background: #6366F1;"></span>
+                      <span class="color-dot" style="background: #8B5CF6;"></span>
+                      <span class="color-dot" style="background: #EC4899;"></span>
+                    </div>
+                    <span>Cyber Violet</span>
+                  </div>
+                  <div class="preset-chip" onclick="window.storeBuilder.applyPresetTheme('amber')">
+                    <div class="preset-color-dots">
+                      <span class="color-dot" style="background: #D97706;"></span>
+                      <span class="color-dot" style="background: #F59E0B;"></span>
+                      <span class="color-dot" style="background: #34D399;"></span>
+                    </div>
+                    <span>Amber Bistro</span>
+                  </div>
+                  <div class="preset-chip" onclick="window.storeBuilder.applyPresetTheme('darkluxe')">
+                    <div class="preset-color-dots">
+                      <span class="color-dot" style="background: #38BDF8;"></span>
+                      <span class="color-dot" style="background: #000000;"></span>
+                      <span class="color-dot" style="background: #F43F5E;"></span>
+                    </div>
+                    <span>Dark Luxe</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="grid-2">
+                <div class="form-group">
+                  <label class="form-label" data-i18n="storeNameLabel">ឈ្មោះហាង (English):</label>
+                  <input type="text" id="inputStoreName" class="form-input" oninput="window.storeBuilder.handleInputChange()">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" data-i18n="storeNameKhLabel">ឈ្មោះហាងជាភាសាខ្មែរ:</label>
+                  <input type="text" id="inputStoreNameKh" class="form-input" oninput="window.storeBuilder.handleInputChange()">
+                </div>
+              </div>
+
+              <div class="grid-2">
+                <div class="form-group">
+                  <label class="form-label" data-i18n="taglineLabel">ពាក្យស្លោក/ការពិពណ៌នាខ្លី (English):</label>
+                  <input type="text" id="inputStoreTagline" class="form-input" oninput="window.storeBuilder.handleInputChange()">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">ពាក្យស្លោកជាភាសាខ្មែរ:</label>
+                  <input type="text" id="inputStoreTaglineKh" class="form-input" oninput="window.storeBuilder.handleInputChange()">
+                </div>
+              </div>
+
+              <div class="grid-2">
+                <div class="form-group">
+                  <label class="form-label" data-i18n="logoUrlLabel">Logo Image URL:</label>
+                  <input type="text" id="inputStoreLogo" class="form-input" oninput="window.storeBuilder.handleInputChange()">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" data-i18n="bannerUrlLabel">Banner Image URL:</label>
+                  <input type="text" id="inputStoreBanner" class="form-input" oninput="window.storeBuilder.handleInputChange()">
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">ប្រភេទអាជីវកម្ម (Category):</label>
+                <select id="selectStoreCategory" class="form-select" onchange="window.storeBuilder.handleInputChange()">
+                  <option value="cafe">☕ Coffee & Cafe</option>
+                  <option value="fashion">👗 Fashion & Clothing</option>
+                  <option value="electronics">⚡ Tech & Electronics</option>
+                  <option value="food">🍔 Food & Restaurant</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" data-i18n="themeColors">🎨 កំណត់ពណ៌ម៉ាកយីហោ (Custom Colors):</label>
+                <div class="color-inputs-grid">
+                  <div class="color-picker-item">
+                    <input type="color" id="inputPrimaryColor" oninput="window.storeBuilder.handleInputChange()">
+                    <div class="color-picker-info">
+                      <span>Primary Color</span>
+                      <code id="codePrimaryColor">#0F766E</code>
+                    </div>
+                  </div>
+                  <div class="color-picker-item">
+                    <input type="color" id="inputSecondaryColor" oninput="window.storeBuilder.handleInputChange()">
+                    <div class="color-picker-info">
+                      <span>Secondary Color</span>
+                      <code id="codeSecondaryColor">#14B8A6</code>
+                    </div>
+                  </div>
+                  <div class="color-picker-item">
+                    <input type="color" id="inputAccentColor" oninput="window.storeBuilder.handleInputChange()">
+                    <div class="color-picker-info">
+                      <span>Accent Color</span>
+                      <code id="codeAccentColor">#F59E0B</code>
+                    </div>
+                  </div>
+                  <div class="color-picker-item">
+                    <input type="color" id="inputBgColor" oninput="window.storeBuilder.handleInputChange()">
+                    <div class="color-picker-info">
+                      <span>Background Color</span>
+                      <code id="codeBgColor">#0F172A</code>
+                    </div>
+                  </div>
+                  <div class="color-picker-item">
+                    <input type="color" id="inputCardBgColor" oninput="window.storeBuilder.handleInputChange()">
+                    <div class="color-picker-info">
+                      <span>Card Background</span>
+                      <code id="codeCardBgColor">#1E293B</code>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- TAB 2: BLOCKS -->
+            <div id="tab_blocks" class="tab-pane">
+              <div style="margin-bottom: 1rem; color: var(--text-secondary); font-size: 0.85rem;">
+                បើក ឬបិទប្លុកផ្នែកផ្សេងៗនៅលើទំព័រមុខហាងរបស់អ្នក៖
+              </div>
+              <div id="builderBlocksList" class="block-list">
+                <!-- Injected by builder.js -->
+              </div>
+            </div>
+
+            <!-- TAB 3: PRODUCTS & MENU -->
+            <div id="tab_products" class="tab-pane">
+              <div class="products-mgmt-header">
+                <div>
+                  <h4 style="font-size: 1rem; font-weight: 700;">បញ្ជីមុខទំនិញ & Menu</h4>
+                  <span style="font-size: 0.75rem; color: var(--text-muted);">គ្រប់គ្រងទំនិញ តម្លៃ និងជម្រើស Option/Toppings</span>
+                </div>
+                <button class="btn btn-primary btn-sm" onclick="window.storeBuilder.openAddProductModal()">
+                  + បន្ថែមទំនិញថ្មី
+                </button>
+              </div>
+
+              <div class="products-table-wrapper">
+                <table class="products-table">
+                  <thead>
+                    <tr>
+                      <th>ទំនិញ</th>
+                      <th>តម្លៃ</th>
+                      <th>ប្រភេទ</th>
+                      <th>សកម្មភាព</th>
+                    </tr>
+                  </thead>
+                  <tbody id="builderProductsTableBody">
+                    <!-- Injected by builder.js -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- TAB 4: PAYMENT CONFIG -->
+            <div id="tab_payment" class="tab-pane">
+              <div style="margin-bottom: 1.25rem; font-size: 0.85rem; color: var(--text-secondary);">
+                កំណត់គណនី Bakong KHQR សម្រាប់ទទួលការទូទាត់ប្រាក់ពីអតិថិជន៖
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">ឈ្មោះហាងលើ KHQR (Merchant Display Name):</label>
+                <input type="text" id="inputKhqrMerchantName" class="form-input" oninput="window.storeBuilder.handleInputChange()">
+              </div>
+
+              <div class="grid-2">
+                <div class="form-group">
+                  <label class="form-label">Bakong Account ID (ឧ. store@aba):</label>
+                  <input type="text" id="inputKhqrBakongId" class="form-input" oninput="window.storeBuilder.handleInputChange()">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">លេខគណនីធនាគារ (Account Number):</label>
+                  <input type="text" id="inputKhqrAccount" class="form-input" oninput="window.storeBuilder.handleInputChange()">
+                </div>
+              </div>
+
+              <div style="background: var(--bg-card); padding: 1rem; border-radius: 12px; margin-top: 1rem;">
+                <label style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; cursor: pointer;">
+                  <span>បើកទទួលទូទាត់តាម Bakong KHQR (QR Code)</span>
+                  <input type="checkbox" id="inputEnableKhqr" checked onchange="window.storeBuilder.handleInputChange()">
+                </label>
+                <label style="display: flex; align-items: center; justify-content: space-between; cursor: pointer;">
+                  <span>បើកទទួលទូទាត់សាច់ប្រាក់ផ្ទាល់ (Cash on Delivery)</span>
+                  <input type="checkbox" id="inputEnableCod" checked onchange="window.storeBuilder.handleInputChange()">
+                </label>
+              </div>
+            </div>
+
+            <!-- TAB 5: ORDERS -->
+            <div id="tab_orders" class="tab-pane">
+              <div id="builderOrdersList">
+                <!-- Injected by builder.js -->
+              </div>
+            </div>
+
+            <!-- TAB 6: SHARE & TELEGRAM -->
+            <div id="tab_share" class="tab-pane">
+              
+              <!-- Telegram Bot Direct Link Box -->
+              <div class="tg-link-card">
+                <div class="tg-link-header">
+                  <span class="tg-badge">✈️ Telegram Mini App Link</span>
+                  <span style="font-size: 0.75rem; color: #70C5FB;">Direct Customer Launch</span>
+                </div>
+                <p style="font-size: 0.8rem; color: var(--text-secondary); margin: 0;">
+                  ផ្ញើ Link នេះទៅកាន់អតិថិជននៅលើ Telegram — ពេលអតិថិជនចុច វានឹងបើក Mini App ហាងរបស់អ្នកភ្លាមៗ!
+                </p>
+                <div class="tg-link-input-group">
+                  <input type="text" id="shareTgStoreUrl" readonly>
+                  <button class="btn btn-telegram" onclick="window.telegramTma.shareStoreToTelegram(window.storeBuilder.getCurrentStore())">
+                    ✈️ Share Chat
+                  </button>
+                  <button class="btn btn-secondary" onclick="navigator.clipboard.writeText(document.getElementById('shareTgStoreUrl').value); window.app.showToast('Copied Telegram Link!', 'success');">
+                    📋
+                  </button>
+                </div>
+              </div>
+
+              <div style="text-align: center; padding: 0.5rem 1rem;">
+                <h4 style="margin-bottom: 0.5rem;">QR Code សម្រាប់ចូល Mini App ហាងនេះ</h4>
+                <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">អតិថិជនអាចស្កេនដើម្បីបើកទំព័រហាងរបស់អ្នកភ្លាមៗ</p>
+                
+                <div style="display: flex; justify-content: center; margin-bottom: 1.25rem;">
+                  <canvas id="shareQrCanvas" width="280" height="340" style="background: white; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);"></canvas>
+                </div>
+
+                <div class="form-group" style="max-width: 480px; margin: 0 auto 1rem auto;">
+                  <div style="display: flex; gap: 0.5rem;">
+                    <input type="text" id="shareStoreUrl" class="form-input" readonly>
+                    <button class="btn btn-primary" onclick="navigator.clipboard.writeText(document.getElementById('shareStoreUrl').value); window.app.showToast('Copied link to clipboard!', 'success');">
+                      ចម្លង Web Link
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Right Column: Live Mobile Simulator -->
+        <div class="simulator-container">
+          <div class="simulator-controls">
+            <span style="font-size: 0.75rem; font-weight: 700; color: #10B981;">● TELEGRAM PREVIEW</span>
+            <button class="sim-btn" onclick="window.storeBuilder.updateSimulator(window.storeBuilder.getCurrentStore())" title="Reload Simulator">🔄 Refresh</button>
+            <button class="sim-btn" onclick="window.app.openStoreMiniApp(window.storeBuilder.getCurrentStore()?.id)" title="Open Full View">↗ Full Screen</button>
+          </div>
+
+          <!-- Phone Bezel Frame -->
+          <div class="phone-mockup">
+            <div class="phone-notch">
+              <div class="notch-camera"></div>
+            </div>
+            <div id="phoneSimulatorScreen" class="phone-screen">
+              <!-- Dynamically rendered Store Mini-App inside simulator -->
+            </div>
+            <div class="phone-home-indicator"></div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- VIEW 3: FULL SCREEN CUSTOMER STORE MINI-APP -->
+    <section id="view_store" class="view-container" style="display: none;">
+      <div id="storeRuntimeContainer">
+        <!-- Injected by store-view.js -->
+      </div>
+    </section>
+
+    <!-- VIEW 4: MY ORDERS VIEW -->
+    <section id="view_orders" class="view-container" style="display: none;">
+      <div style="max-width: 720px; margin: 0 auto;">
+        <h2 style="font-size: 1.5rem; font-weight: 800; margin-bottom: 1.25rem;">📦 ការកុម្ម៉ង់ទាំងអស់របស់អ្នក (My Orders)</h2>
+        <div id="ordersViewList">
+          <!-- Injected by app.js -->
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ==========================================================================
+       MODALS
+       ========================================================================== -->
+
+  <!-- Modal 1: Create New Store -->
+  <div id="createStoreModal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>+ បង្កើត Mini App ហាងថ្មីលើ Telegram</h3>
+        <button class="modal-close-btn" onclick="document.getElementById('createStoreModal').classList.remove('active')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">ឈ្មោះហាង (Store Name English):</label>
+          <input type="text" id="newStoreName" class="form-input" placeholder="e.g. Malis Artisan Bakery">
+        </div>
+        <div class="form-group">
+          <label class="form-label">ឈ្មោះហាងជាភាសាខ្មែរ:</label>
+          <input type="text" id="newStoreNameKh" class="form-input" placeholder="ឧ. ហាងនំបុ័ង ម្លិះ">
+        </div>
+        <div class="form-group">
+          <label class="form-label">ប្រភេទអាជីវកម្ម:</label>
+          <select id="newStoreCategory" class="form-select">
+            <option value="cafe">☕ កាហ្វេ & ភេសជ្ជៈ (Cafe & Drinks)</option>
+            <option value="fashion">👗 សម្លៀកបំពាក់ (Fashion & Style)</option>
+            <option value="food">🍔 អាហារ & ភោជនីយដ្ឋាន (Food & Dining)</option>
+            <option value="electronics">⚡ គ្រឿងអេឡិចត្រូនិច (Tech & Gadgets)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">ពណ៌ចម្បងនៃម៉ាកយីហោ (Brand Primary Color):</label>
+          <input type="color" id="newStoreThemeColor" value="#0F766E" style="width: 100%; height: 40px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); cursor: pointer;">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="document.getElementById('createStoreModal').classList.remove('active')">បោះបង់</button>
+        <button class="btn btn-primary" onclick="window.app.submitCreateStore()">🚀 បង្កើតហាងភ្លាមៗ</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 2: Product Add/Edit Modal (In Merchant Studio) -->
+  <div id="productModalOverlay" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="modalProductTitle">បន្ថែមទំនិញថ្មី</h3>
+        <button class="modal-close-btn" onclick="document.getElementById('productModalOverlay').classList.remove('active')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">ឈ្មោះទំនិញ (English):</label>
+            <input type="text" id="prodFormName" class="form-input" placeholder="e.g. Caramel Frappe">
+          </div>
+          <div class="form-group">
+            <label class="form-label">ឈ្មោះទំនិញជាភាសាខ្មែរ:</label>
+            <input type="text" id="prodFormNameKh" class="form-input" placeholder="ឧ. ខារ៉ាមែល ក្រឡុក">
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">តម្លៃលក់ ($):</label>
+            <input type="number" step="0.01" id="prodFormPrice" class="form-input" placeholder="3.50">
+          </div>
+          <div class="form-group">
+            <label class="form-label">តម្លៃដើម / បញ្ចុះតម្លៃ ($) (បើមាន):</label>
+            <input type="number" step="0.01" id="prodFormOrigPrice" class="form-input" placeholder="4.00">
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">ប្រភេទ (Category):</label>
+            <select id="prodFormCategory" class="form-select"></select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Badge (ឧ. HOT DEAL, NEW):</label>
+            <input type="text" id="prodFormBadge" class="form-input" placeholder="HOT DEAL">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">រូបភាពទំនិញ (Image URL):</label>
+          <input type="text" id="prodFormImage" class="form-input">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">ការពិពណ៌នាទំនិញ (Description):</label>
+          <textarea id="prodFormDesc" class="form-textarea"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">ការពិពណ៌នាជាភាសាខ្មែរ:</label>
+          <textarea id="prodFormDescKh" class="form-textarea"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="document.getElementById('productModalOverlay').classList.remove('active')">បោះបង់</button>
+        <button class="btn btn-primary" onclick="window.storeBuilder.saveProductModal()">💾 រក្សាទុកទំនិញ</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 3: Customer Product Customizer (In Store) -->
+  <div id="storeProductDetailModal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="detailModalTitle">Product Details</h3>
+        <button class="modal-close-btn" onclick="document.getElementById('storeProductDetailModal').classList.remove('active')">✕</button>
+      </div>
+      <div class="modal-body">
+        <img id="detailModalImg" src="" alt="Product" style="width: 100%; height: 200px; object-fit: cover; border-radius: 12px; margin-bottom: 1rem;">
+        <p id="detailModalDesc" style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1rem;"></p>
+        <div id="detailModalOptions">
+          <!-- Options dynamically rendered by store-view.js -->
+        </div>
+      </div>
+      <div class="modal-footer" style="justify-content: space-between;">
+        <div>
+          <span style="font-size: 0.75rem; color: var(--text-muted); display: block;">Total Price</span>
+          <span id="detailModalPrice" style="font-size: 1.25rem; font-weight: 800; color: var(--accent-gold);">$0.00</span>
+        </div>
+        <button id="detailModalAddBtn" class="btn btn-primary">🛒 ដាក់ក្នុងកន្ត្រក</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 4: Cart Drawer -->
+  <div id="storeCartModal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>🛒 កន្ត្រកទំនិញ (Shopping Cart)</h3>
+        <button class="modal-close-btn" onclick="document.getElementById('storeCartModal').classList.remove('active')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div id="cartItemsList">
+          <!-- Cart items injected -->
+        </div>
+
+        <div style="background: rgba(0,0,0,0.25); padding: 1rem; border-radius: 12px; margin-top: 1.25rem;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 0.4rem; font-size: 0.85rem;">
+            <span style="color: var(--text-secondary);">តម្លៃទំនិញ (Subtotal):</span>
+            <span id="cartSubtotal" style="font-weight: 700;">$0.00</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 0.4rem; font-size: 0.85rem;">
+            <span style="color: var(--text-secondary);">សេវាដឹកជញ្ជូន (Delivery Fee):</span>
+            <span id="cartDeliveryFee" style="font-weight: 700;">$0.00</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 0.6rem; font-size: 1.1rem; font-weight: 800;">
+            <span>សរុប (Total):</span>
+            <div style="text-align: right;">
+              <span id="cartTotal" style="color: var(--accent-gold);">$0.00</span>
+              <div id="cartTotalKhr" style="font-size: 0.75rem; color: var(--text-muted);">0 ៛</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="document.getElementById('storeCartModal').classList.remove('active')">បន្តទិញ</button>
+        <button class="btn btn-emerald" onclick="window.storeView.proceedToCheckout()">💳 ទៅកាន់ការទូទាត់</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 5: Checkout Form -->
+  <div id="storeCheckoutModal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>📍 ព័ត៌មានដឹកជញ្ជូន & ទូទាត់</h3>
+        <button class="modal-close-btn" onclick="document.getElementById('storeCheckoutModal').classList.remove('active')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">ឈ្មោះអ្នកទទួល (Recipient Name):</label>
+          <input type="text" id="checkoutCustName" class="form-input" value="Sokha Mean">
+        </div>
+        <div class="form-group">
+          <label class="form-label">លេខទូរស័ព្ទ (Phone Number):</label>
+          <input type="text" id="checkoutCustPhone" class="form-input" value="012 345 678">
+        </div>
+        <div class="form-group">
+          <label class="form-label">អាសយដ្ឋានដឹកជញ្ជូន (Delivery Address):</label>
+          <textarea id="checkoutCustAddress" class="form-textarea">Street 271, Sangkat Boeung Tumpun, Khan Meanchey, Phnom Penh</textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">ចំណាំបន្ថែម (Notes for rider/shop):</label>
+          <input type="text" id="checkoutCustNotes" class="form-input" placeholder="e.g. Please ring doorbell">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">វិធីសាស្ត្រទូទាត់ប្រាក់ (Payment Method):</label>
+          <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+            <label class="option-item">
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <input type="radio" name="paymentMethod" value="KHQR" checked>
+                <span><strong>Bakong KHQR (ABA, ACLEDA, Canadia...)</strong></span>
+              </div>
+              <span style="font-size: 0.75rem; color: #10B981; font-weight: 700;">INSTANT</span>
+            </label>
+            <label class="option-item">
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <input type="radio" name="paymentMethod" value="COD">
+                <span>បង់ប្រាក់ផ្ទាល់ពេលទទួលទំនិញ (Cash on Delivery)</span>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div style="text-align: right; font-weight: 700; font-size: 1.1rem; color: var(--accent-gold); margin-top: 1rem;">
+          Total to Pay: <span id="checkoutSummaryTotal">$0.00</span>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="document.getElementById('storeCheckoutModal').classList.remove('active')">ថយក្រោយ</button>
+        <button class="btn btn-emerald" onclick="window.storeView.submitOrder()">✅ បញ្ជាក់ការកុម្ម៉ង់</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 6: Bakong KHQR Payment Screen -->
+  <div id="khqrPaymentModal" class="modal-overlay">
+    <div class="modal-card" style="max-width: 420px; text-align: center;">
+      <div class="modal-header">
+        <h3>ស្កេនទូទាត់ជាមួយ KHQR</h3>
+        <button class="modal-close-btn" onclick="document.getElementById('khqrPaymentModal').classList.remove('active')">✕</button>
+      </div>
+      <div class="modal-body" style="display: flex; flex-direction: column; align-items: center;">
+        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">
+          សូមស្កេន QR Code ខាងក្រោមដោយប្រើកម្មវិធីធនាគារណាមួយនៅក្នុងប្រទេសកម្ពុជា
+        </p>
+
+        <canvas id="khqrCanvas" width="300" height="360" style="border-radius: 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.6); margin-bottom: 1rem;"></canvas>
+
+        <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">
+          ហាង: <strong id="khqrModalStoreName" style="color: #FFFFFF;"></strong>
+        </div>
+        <div style="font-size: 1.3rem; font-weight: 800; color: #EF4444; margin-bottom: 0.2rem;" id="khqrModalAmount">
+          $0.00
+        </div>
+        <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;" id="khqrModalAmountKhr">
+          0 ៛
+        </div>
+
+        <button class="btn btn-emerald btn-block" onclick="window.storeView.simulateKhqrSuccess()">
+          ⚡ សាកល្បង៖ បញ្ជាក់ថាបានបង់ប្រាក់រួចរាល់ (Simulate Paid)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 7: Order Tracking Stepper -->
+  <div id="orderTrackingModal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>🎉 ការកុម្ម៉ង់ជោគជ័យ!</h3>
+        <button class="modal-close-btn" onclick="document.getElementById('orderTrackingModal').classList.remove('active')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div style="text-align: center; margin-bottom: 1.5rem;">
+          <div style="font-size: 3rem; margin-bottom: 0.5rem;">🛵</div>
+          <h4 id="trackStoreName" style="font-size: 1.2rem; font-weight: 800;">Store</h4>
+          <span style="font-size: 0.85rem; color: var(--text-muted);" id="trackOrderId">#ORD-0000</span>
+        </div>
+
+        <!-- Stepper -->
+        <div class="order-stepper">
+          <div class="step-item completed">
+            <div class="step-icon">✓</div>
+            <span class="step-label">បានកុម្ម៉ង់</span>
+          </div>
+          <div class="step-item active">
+            <div class="step-icon">👨‍🍳</div>
+            <span class="step-label">រៀបចំ</span>
+          </div>
+          <div class="step-item">
+            <div class="step-icon">🛵</div>
+            <span class="step-label">កំពុងដឹក</span>
+          </div>
+          <div class="step-item">
+            <div class="step-icon">🏁</div>
+            <span class="step-label">បានដល់</span>
+          </div>
+        </div>
+
+        <div style="background: var(--bg-card); padding: 1rem; border-radius: 12px; margin-top: 1.5rem;">
+          <div style="display: flex; justify-content: space-between; font-size: 0.9rem;">
+            <span>សរុបការទូទាត់:</span>
+            <strong id="trackTotal" style="color: var(--accent-gold);">$0.00</strong>
+          </div>
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.5rem;">
+            ហាងកំពុងរៀបចំទំនិញរបស់អ្នក។ ម្ចាស់ហាងទទួលបានសារជូនដំណឹងតាម Telegram រួចរាល់ហើយ។
+          </p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary btn-block" onclick="document.getElementById('orderTrackingModal').classList.remove('active'); window.app.switchView('orders');">
+          📦 ទៅកាន់ទំព័រតាមដានការកុម្ម៉ង់
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- App Scripts -->
+  <script src="js/mock-data.js"></script>
+  <script src="js/khqr.js"></script>
+  <script src="js/telegram-tma.js"></script>
+  <script src="js/store-engine.js"></script>
+  <script src="js/store-view.js"></script>
+  <script src="js/builder.js"></script>
+  <script src="js/app.js"></script>
+
+</body>
+</html>

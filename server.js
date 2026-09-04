@@ -1,0 +1,227 @@
+/**
+ * OmniMini Full-Stack Server
+ * Express Web App Server + Telegram Bot Service (Long-Polling & WebApp Integrations)
+ */
+
+require('dotenv').config();
+const express = require('express');
+const cors = require('cors');
+const path = require('path');
+const https = require('https');
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+const BOT_TOKEN = process.env.BOT_TOKEN || '8154757152:AAHG-4c8LdtbEzm6cbQ7-YOm_Kd5xrJpvBo';
+const WEB_APP_URL = process.env.WEB_APP_URL || 'https://gleaming-pastelito-d49af0.netlify.app';
+const MERCHANT_CHAT_ID = process.env.MERCHANT_CHAT_ID || null;
+
+// Middleware
+app.use(cors());
+app.use(express.json());
+
+// Telegram Mini App Iframe & CSP Security Headers
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('X-Frame-Options', 'ALLOWALL');
+  res.setHeader('Content-Security-Policy', "frame-ancestors *;");
+  next();
+});
+
+// Serve Static Frontend Files
+app.use(express.static(path.join(__dirname)));
+
+// Health Check API (For Render, Uptime Robot, etc.)
+app.get('/api/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    service: 'OmniMini Telegram Mini App & Bot Server',
+    webAppUrl: WEB_APP_URL,
+    botActive: !!BOT_TOKEN
+  });
+});
+
+// Helper: Telegram API Request
+function telegramRequest(method, payload) {
+  return new Promise((resolve, reject) => {
+    if (!BOT_TOKEN) return resolve({ ok: false, description: 'BOT_TOKEN is missing' });
+
+    const data = payload ? JSON.stringify(payload) : null;
+    const req = https.request({
+      hostname: 'api.telegram.org',
+      port: 443,
+      path: `/bot${BOT_TOKEN}/${method}`,
+      method: payload ? 'POST' : 'GET',
+      headers: payload ? {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(data)
+      } : {}
+    }, res => {
+      let body = '';
+      res.on('data', chunk => body += chunk);
+      res.on('end', () => {
+        try {
+          resolve(JSON.parse(body));
+        } catch (e) {
+          resolve({ ok: false, error: body });
+        }
+      });
+    });
+
+    req.on('error', err => {
+      console.warn(`[Telegram API Error in ${method}]:`, err.message);
+      resolve({ ok: false, error: err.message });
+    });
+
+    if (data) req.write(data);
+    req.end();
+  });
+}
+
+// API: Send Real-Time Order Notification to Telegram Chat
+app.post('/api/send-order-alert', async (req, res) => {
+  try {
+    const { order, store, targetChatId } = req.body;
+    const chatId = targetChatId || MERCHANT_CHAT_ID;
+
+    if (!chatId) {
+      return res.json({ ok: true, notice: 'No target chat ID specified, alert shown in in-app TMA banner.' });
+    }
+
+    const itemsText = order.items.map(i => `• ${i.qty}x *${i.name}* ($${i.lineTotal.toFixed(2)})`).join('\n');
+    const messageText = `🔔 *ការកុម្ម៉ង់ថ្មី (New Order Alert)!* 🚀\n\n` +
+      `🏪 *ហាង:* ${store?.name || 'Omni Store'}\n` +
+      `🧾 *លេខកូដ:* \`#${order.id}\`\n` +
+      `💰 *សរុប:* *$${order.total.toFixed(2)}* (${Math.round(order.total * 4100).toLocaleString()} ៛)\n` +
+      `💳 *វិធីទូទាត់:* ${order.paymentMethod} (${order.paymentStatus})\n\n` +
+      `👤 *អតិថិជន:* ${order.customer.name} (${order.customer.phone})\n` +
+      `📍 *អាសយដ្ឋាន:* ${order.customer.address}\n\n` +
+      `📦 *ទំនិញដែលបានកុម្ម៉ង់:*\n${itemsText}\n\n` +
+      `⏰ _កាលបរិច្ឆេទ: ${new Date().toLocaleString('en-US', { timeZone: 'Asia/Phnom_Penh' })}_`;
+
+    const result = await telegramRequest('sendMessage', {
+      chat_id: chatId,
+      text: messageText,
+      parse_mode: 'Markdown'
+    });
+
+    res.json({ ok: result.ok, result });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// Send Welcome Message with Inline WebApp Button
+async function sendWelcomeMessage(chatId, firstName, startParam = '') {
+  const storeUrl = startParam ? `${WEB_APP_URL}/#store=${startParam}` : WEB_APP_URL;
+
+  const text = `👋 សួស្តី **${firstName || 'ម្ចាស់អាជីវកម្ម'}**!\n\n` +
+    `សូមស្វាគមន៍មកកាន់ **OmniMini Platform** ⚡\n` +
+    `ប្រព័ន្ធបង្កើត និងគ្រប់គ្រង Mini App ហាងផ្ទាល់ខ្លួននៅលើ Telegram ជាមួយ Bakong KHQR Payment។\n\n` +
+    `👇 **សូមចុចប៊ូតុងខាងក្រោមដើម្បីបើក Mini App៖**`;
+
+  const replyMarkup = {
+    inline_keyboard: [
+      [
+        {
+          text: '🛍️ បើកហាង Mini App (Open App)',
+          web_app: {
+            url: storeUrl
+          }
+        }
+      ],
+      [
+        {
+          text: '🌐 បើកលើ Web Browser',
+          url: storeUrl
+        }
+      ]
+    ]
+  };
+
+  return telegramRequest('sendMessage', {
+    chat_id: chatId,
+    text: text,
+    parse_mode: 'Markdown',
+    reply_markup: replyMarkup
+  });
+}
+
+// Telegram Bot Long Polling
+let offset = 0;
+let isPolling = false;
+
+async function pollBot() {
+  if (!BOT_TOKEN) {
+    console.log('⚠️ BOT_TOKEN not configured. Skipping Bot Polling.');
+    return;
+  }
+
+  isPolling = true;
+
+  try {
+    const res = await telegramRequest('getUpdates', {
+      offset: offset,
+      timeout: 25
+    });
+
+    if (res && res.ok && Array.isArray(res.result) && res.result.length > 0) {
+      for (const update of res.result) {
+        offset = update.update_id + 1;
+
+        if (update.message && update.message.text) {
+          const chatId = update.message.chat.id;
+          const text = update.message.text.trim();
+          const firstName = update.message.from?.first_name || '';
+
+          console.log(`[Telegram Update] Chat: ${chatId} (${firstName}) -> "${text}"`);
+
+          if (text.startsWith('/start')) {
+            const parts = text.split(' ');
+            const startParam = parts.length > 1 ? parts[1] : '';
+            await sendWelcomeMessage(chatId, firstName, startParam);
+          } else if (text.startsWith('/app') || text.startsWith('/shop')) {
+            await sendWelcomeMessage(chatId, firstName, '');
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('[Bot Polling Error]:', err.message);
+  }
+
+  // Next polling cycle
+  setTimeout(pollBot, 1000);
+}
+
+// Setup Menu Button on Startup
+async function initBotMenuButton() {
+  if (!BOT_TOKEN) return;
+  try {
+    await telegramRequest('setChatMenuButton', {
+      menu_button: {
+        type: 'web_app',
+        text: '🛍️ បើកហាង Mini App',
+        web_app: {
+          url: WEB_APP_URL
+        }
+      }
+    });
+    console.log(`✅ Telegram Menu Button configured -> ${WEB_APP_URL}`);
+  } catch (e) {
+    console.warn('Could not set menu button:', e.message);
+  }
+}
+
+// Start Server
+app.listen(PORT, () => {
+  console.log(`======================================================`);
+  console.log(`🚀 OmniMini Server is running on port ${PORT}`);
+  console.log(`🌐 Web App URL: ${WEB_APP_URL}`);
+  console.log(`🤖 Telegram Bot Polling: Starting...`);
+  console.log(`======================================================`);
+
+  initBotMenuButton().then(() => {
+    pollBot();
+  });
+});

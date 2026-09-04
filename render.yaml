@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: omnimini-shop-service
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: BOT_TOKEN
+        value: 8154757152:AAHG-4c8LdtbEzm6cbQ7-YOm_Kd5xrJpvBo
+      - key: WEB_APP_URL
+        sync: false

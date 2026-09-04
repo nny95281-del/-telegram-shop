@@ -1,0 +1,182 @@
+/* ==========================================================================
+   Telegram Mini App (TMA) Native Styling & Notification Banners
+   ========================================================================== */
+
+/* Header Telegram User Pill */
+.tg-user-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(36, 161, 222, 0.15);
+  border: 1px solid rgba(36, 161, 222, 0.35);
+  padding: 0.25rem 0.65rem 0.25rem 0.35rem;
+  border-radius: var(--radius-full);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #70C5FB;
+}
+
+.tg-avatar-img {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid #24A1DE;
+}
+
+.tg-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #24A1DE;
+  box-shadow: 0 0 8px #24A1DE;
+}
+
+/* Telegram Direct Store Link Widget */
+.tg-link-card {
+  background: linear-gradient(135deg, rgba(36, 161, 222, 0.12) 0%, rgba(15, 23, 42, 0.8) 100%);
+  border: 1px solid rgba(36, 161, 222, 0.3);
+  border-radius: var(--radius-md);
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.tg-link-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.tg-badge {
+  background: #24A1DE;
+  color: #FFFFFF;
+  font-size: 0.7rem;
+  font-weight: 800;
+  padding: 0.2rem 0.5rem;
+  border-radius: var(--radius-full);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.tg-link-input-group {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.tg-link-input-group input {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #70C5FB;
+  font-family: monospace;
+  font-size: 0.85rem;
+  padding: 0.6rem 0.85rem;
+  border-radius: var(--radius-md);
+  flex: 1;
+  outline: none;
+}
+
+.btn-telegram {
+  background: #24A1DE;
+  color: #FFFFFF;
+  border: none;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 0.85rem;
+  padding: 0.6rem 1rem;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(36, 161, 222, 0.35);
+}
+
+.btn-telegram:hover {
+  background: #1B8DC7;
+  transform: translateY(-1px);
+}
+
+/* Telegram Real-Time Order Alert Banner (Pop-up from Top) */
+.tg-order-alert-banner {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-150%);
+  width: calc(100% - 32px);
+  max-width: 520px;
+  background: #1C2431;
+  border: 1px solid #24A1DE;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6), 0 0 20px rgba(36, 161, 222, 0.3);
+  border-radius: var(--radius-lg);
+  padding: 1rem 1.25rem;
+  z-index: 9999;
+  display: flex;
+  gap: 0.85rem;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.tg-order-alert-banner.show {
+  transform: translateX(-50%) translateY(0);
+}
+
+.tg-alert-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #24A1DE;
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(36, 161, 222, 0.4);
+}
+
+.tg-alert-content {
+  flex: 1;
+}
+
+.tg-alert-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.25rem;
+}
+
+.tg-alert-title {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: #70C5FB;
+}
+
+.tg-alert-amount {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #10B981;
+}
+
+.tg-alert-details {
+  font-size: 0.8rem;
+  color: #E2E8F0;
+  margin-bottom: 0.25rem;
+}
+
+.tg-alert-meta {
+  font-size: 0.72rem;
+  color: #94A3B8;
+}
+
+.tg-alert-close {
+  background: transparent;
+  border: none;
+  color: #64748B;
+  font-size: 1.1rem;
+  cursor: pointer;
+  align-self: flex-start;
+}

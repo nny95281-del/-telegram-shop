@@ -1,0 +1,488 @@
+/* ==========================================================================
+   Customer Store Mini-App Runtime Styles (Dynamic Themed)
+   ========================================================================== */
+
+.store-runtime-wrapper {
+  background-color: var(--store-bg, #0F172A);
+  color: var(--store-text, #F8FAFC);
+  font-family: var(--store-font, 'Inter', 'Kantumruy Pro', sans-serif);
+  min-height: 100%;
+  position: relative;
+  padding-bottom: 90px; /* Space for floating cart */
+}
+
+/* Store Navigation Bar */
+.store-navbar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 0.75rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.store-nav-left {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.store-back-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: none;
+  color: #FFFFFF;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  transition: all 0.15s ease;
+}
+
+.store-back-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.store-nav-logo {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--store-radius, 12px);
+  object-fit: cover;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.store-nav-info h2 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.store-nav-info span {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.6);
+  display: block;
+}
+
+.store-nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.store-action-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: none;
+  color: #FFFFFF;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+}
+
+/* Announcement Bar Block */
+.runtime-announcement {
+  background: linear-gradient(90deg, var(--store-primary, #0F766E), var(--store-secondary, #14B8A6));
+  color: #FFFFFF;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.45rem 1rem;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+/* Hero Banner Block */
+.runtime-hero {
+  position: relative;
+  height: 150px;
+  background-size: cover;
+  background-position: center;
+  border-radius: 0 0 var(--store-radius, 16px) var(--store-radius, 16px);
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.runtime-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.85) 100%);
+}
+
+.runtime-hero-content {
+  position: relative;
+  z-index: 2;
+}
+
+.runtime-hero-content h3 {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #FFFFFF;
+  margin-bottom: 0.2rem;
+}
+
+.runtime-hero-content p {
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* Categories Sticky Bar Block */
+.runtime-categories {
+  position: sticky;
+  top: 50px;
+  z-index: 40;
+  background: var(--store-bg, #0F172A);
+  padding: 0.5rem 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  overflow-x: auto;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.runtime-cat-chip {
+  background: var(--store-card-bg, #1E293B);
+  color: var(--store-text, #F8FAFC);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.4rem 0.75rem;
+  border-radius: var(--store-radius, 12px);
+  cursor: pointer;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: all 0.15s ease;
+}
+
+.runtime-cat-chip.active {
+  background: var(--store-primary, #0F766E);
+  color: #FFFFFF;
+  border-color: var(--store-primary, #0F766E);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Product Section & Grid */
+.runtime-section {
+  padding: 0.75rem 0.85rem;
+}
+
+.runtime-section-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.runtime-product-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+}
+
+.runtime-product-card {
+  background: var(--store-card-bg, #1E293B);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: var(--store-radius, 14px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+}
+
+.runtime-product-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+}
+
+.runtime-product-img-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  background-color: #000000;
+  overflow: hidden;
+}
+
+.runtime-product-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.runtime-product-card:hover .runtime-product-img {
+  transform: scale(1.05);
+}
+
+.runtime-product-badge {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  background: var(--store-accent, #F59E0B);
+  color: #000000;
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  text-transform: uppercase;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.runtime-product-body {
+  padding: 0.65rem;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.runtime-product-name {
+  font-size: 0.825rem;
+  font-weight: 700;
+  line-height: 1.3;
+  margin-bottom: 0.2rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.runtime-product-desc {
+  font-size: 0.68rem;
+  color: rgba(255, 255, 255, 0.55);
+  margin-bottom: 0.5rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.runtime-product-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: auto;
+  padding-top: 0.25rem;
+}
+
+.runtime-price-group {
+  display: flex;
+  align-items: baseline;
+  gap: 0.3rem;
+}
+
+.runtime-price-main {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--store-accent, #F59E0B);
+}
+
+.runtime-price-old {
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.4);
+  text-decoration: line-through;
+}
+
+.runtime-add-btn {
+  background: var(--store-primary, #0F766E);
+  color: #FFFFFF;
+  border: none;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--store-radius, 8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: transform 0.1s ease, filter 0.15s ease;
+}
+
+.runtime-add-btn:active {
+  transform: scale(0.9);
+}
+
+/* Floating Bottom Cart Bar */
+.runtime-cart-bar {
+  position: fixed;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 24px);
+  max-width: 400px;
+  background: var(--store-primary, #0F766E);
+  color: #FFFFFF;
+  border-radius: var(--store-radius, 16px);
+  padding: 0.75rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5), 0 0 15px rgba(15, 118, 110, 0.4);
+  cursor: pointer;
+  z-index: 90;
+  animation: slideInUp 0.3s ease-out;
+}
+
+.cart-bar-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.cart-bar-badge {
+  background: #FFFFFF;
+  color: var(--store-primary, #0F766E);
+  font-size: 0.8rem;
+  font-weight: 800;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cart-bar-text {
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.cart-bar-price {
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+/* Store Info / Contact Block */
+.runtime-info-block {
+  background: var(--store-card-bg, #1E293B);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--store-radius, 14px);
+  padding: 1rem;
+  margin: 1rem 0.85rem;
+  font-size: 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.runtime-info-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* Product Customizer Modal Inside Store */
+.option-group {
+  margin-bottom: 1.25rem;
+}
+
+.option-group-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  display: flex;
+  justify-content: space-between;
+}
+
+.option-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 0.75rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-sm);
+  margin-bottom: 0.4rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.option-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Stepper Order Status Track */
+.order-stepper {
+  display: flex;
+  justify-content: space-between;
+  position: relative;
+  margin: 1.5rem 0;
+}
+
+.order-stepper::before {
+  content: '';
+  position: absolute;
+  top: 14px;
+  left: 20px;
+  right: 20px;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.1);
+  z-index: 1;
+}
+
+.step-item {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.step-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--bg-card);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.step-item.active .step-icon {
+  background: var(--accent-primary);
+  border-color: #FFFFFF;
+  color: #FFFFFF;
+  box-shadow: 0 0 12px rgba(99, 102, 241, 0.5);
+}
+
+.step-item.completed .step-icon {
+  background: var(--success);
+  border-color: var(--success);
+  color: #FFFFFF;
+}
+
+.step-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.step-item.active .step-label {
+  color: #FFFFFF;
+}
