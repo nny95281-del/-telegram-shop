@@ -7,7 +7,7 @@ class TelegramTmaService {
   constructor() {
     this.tg = window.Telegram?.WebApp || null;
     this.user = null;
-    this.botUsername = "omnimini_shop_bot"; // Configured bot username
+    this.botUsername = "omnimini_shop_bot";
     this.init();
   }
 
@@ -22,11 +22,17 @@ class TelegramTmaService {
           this.tg.enableClosingConfirmation();
         }
 
+        // Apply Telegram Theme Colors
+        if (this.tg.themeParams) {
+          document.documentElement.style.setProperty('--tg-bg', this.tg.themeParams.bg_color || '#0F172A');
+          document.documentElement.style.setProperty('--tg-text', this.tg.themeParams.text_color || '#F8FAFC');
+        }
+
         // Get Telegram User
         const initData = this.tg.initDataUnsafe;
         if (initData && initData.user) {
           this.user = {
-            id: initData.user.id,
+            id: String(initData.user.id),
             firstName: initData.user.first_name,
             lastName: initData.user.last_name || "",
             username: initData.user.username || "",
@@ -43,9 +49,9 @@ class TelegramTmaService {
     if (!this.user) {
       this.user = {
         id: "77889911",
-        firstName: "Sokha (Merchant)",
-        lastName: "Cambodia",
-        username: "sokha_store_owner",
+        firstName: "Sokha",
+        lastName: "Mean",
+        username: "sokha_merchant",
         photoUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80",
         languageCode: "km"
       };
@@ -61,13 +67,18 @@ class TelegramTmaService {
       return this.tg.initDataUnsafe.start_param;
     }
 
-    // Also check URL query params for fallback testing (?startapp=xyz or #tgWebAppStartParam=xyz)
+    // Check URL query params for fallback testing (?startapp=xyz or ?store=xyz)
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.has("startapp")) return urlParams.get("startapp");
+    if (urlParams.has("store")) return urlParams.get("store");
 
     const hash = window.location.hash;
     if (hash.includes("tgWebAppStartParam=")) {
       const match = hash.match(/tgWebAppStartParam=([^&]+)/);
+      if (match) return decodeURIComponent(match[1]);
+    }
+    if (hash.includes("store=")) {
+      const match = hash.match(/store=([^&]+)/);
       if (match) return decodeURIComponent(match[1]);
     }
 
@@ -100,9 +111,11 @@ class TelegramTmaService {
   }
 
   shareStoreToTelegram(store) {
+    if (!store) return;
     this.hapticImpact("light");
     const link = this.getTelegramStoreLink(store.slug || store.id);
-    const text = encodeURIComponent(`🛍️ សូមស្វាគមន៍មកកាន់ Mini App ហាង ${store.name} លើ Telegram!\nចុច Link ខាងក្រោមដើម្បីកុម្ម៉ង់ និងទូទាត់តាម Bakong KHQR បានភ្លាមៗ៖\n${link}`);
+    const storeName = store.nameKh || store.name;
+    const text = encodeURIComponent(`🛍️ សូមស្វាគមន៍មកកាន់ Mini App ហាង ${storeName} លើ Telegram!\n\n👇 ចុច Link ខាងក្រោមដើម្បីចូលទិញទំនិញ និងទូទាត់តាម Bakong KHQR បានភ្លាមៗ៖\n${link}`);
     
     const telegramShareUrl = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${text}`;
 
@@ -113,14 +126,14 @@ class TelegramTmaService {
     }
   }
 
-  // Send / Simulate Instant Order Alert to Merchant's Telegram Chat
+  // Send Instant Order Alert (In-App Banner + Backend Notification)
   sendMerchantOrderNotification(order, store) {
     this.hapticNotification("success");
 
-    // Telegram Bot Notification Banner Pop-up
+    // 1. Show Instant In-App Slide Banner
     const notifContainer = document.getElementById("telegramOrderAlertBanner");
     if (notifContainer) {
-      document.getElementById("tgAlertStoreName").textContent = store.name;
+      document.getElementById("tgAlertStoreName").textContent = store.nameKh || store.name;
       document.getElementById("tgAlertOrderId").textContent = `#${order.id}`;
       document.getElementById("tgAlertAmount").textContent = `$${order.total.toFixed(2)}`;
       document.getElementById("tgAlertCustomer").textContent = `${order.customer.name} (${order.customer.phone})`;
@@ -137,6 +150,15 @@ class TelegramTmaService {
         notifContainer.classList.remove("show");
       }, 7000);
     }
+
+    // 2. Call Server Alert API if available
+    try {
+      fetch('/api/send-order-alert', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order, store })
+      }).catch(() => {});
+    } catch (e) {}
   }
 }
 

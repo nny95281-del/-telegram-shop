@@ -168,6 +168,23 @@
           </div>
         </div>
 
+        <!-- Telegram Direct Store Link Bar for Merchant -->
+        <div class="tg-link-card" style="margin-bottom: 1.25rem;">
+          <div class="tg-link-header">
+            <span class="tg-badge">✈️ Link Telegram Mini App សម្រាប់ភ្ញៀវរបស់អ្នក</span>
+            <span style="font-size: 0.75rem; color: #70C5FB;">Direct Customer Link</span>
+          </div>
+          <div class="tg-link-input-group">
+            <input type="text" id="builderTopTgLink" readonly value="https://t.me/omnimini_shop_bot/app?startapp=cafe">
+            <button class="btn btn-telegram" onclick="window.telegramTma.shareStoreToTelegram(window.storeBuilder.getCurrentStore())">
+              ✈️ ផ្ញើទៅ Telegram
+            </button>
+            <button class="btn btn-secondary" onclick="navigator.clipboard.writeText(document.getElementById('builderTopTgLink').value); window.app.showToast('បានចម្លង Link Telegram!', 'success');">
+              📋 ចម្លង
+            </button>
+          </div>
+        </div>
+
         <!-- Left Column: Customizer Tabs -->
         <div class="builder-controls-panel">
           <div class="builder-nav-tabs">

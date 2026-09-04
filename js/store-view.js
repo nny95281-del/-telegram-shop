@@ -99,7 +99,7 @@ class StoreView {
           blocksHtml += `
             <div class="runtime-section">
               <div class="runtime-section-title">
-                <span>${block.title || "📦 All Menu"}</span>
+                <span>${block.title || (lang === 'km' ? '📦 មុខទំនិញទាំងអស់' : '📦 All Menu')}</span>
                 <span style="font-size: 0.75rem; color: var(--text-muted);">${filteredProducts.length} items</span>
               </div>
               <div class="runtime-product-grid">
@@ -128,10 +128,10 @@ class StoreView {
 
     return `
       <div class="store-runtime-wrapper" style="${themeStyles}">
-        <!-- Top Navbar -->
+        <!-- Top Customer Store Navbar -->
         <header class="store-navbar">
           <div class="store-nav-left">
-            ${!isSimulator ? `<button class="store-back-btn" onclick="window.app.switchView('marketplace')">←</button>` : ''}
+            ${!isSimulator ? `<button class="store-back-btn" onclick="window.app.switchView('marketplace')" title="Back to Marketplace">←</button>` : ''}
             <img src="${store.logo}" class="store-nav-logo" alt="${storeDisplayName}">
             <div class="store-nav-info">
               <h2>${storeDisplayName}</h2>
@@ -139,6 +139,9 @@ class StoreView {
             </div>
           </div>
           <div class="store-nav-actions">
+            <button class="store-action-btn" onclick="window.storeView.openCustomerOrdersModal()" title="My Orders">
+              📦
+            </button>
             <button class="store-action-btn" onclick="window.telegramTma.shareStoreToTelegram(window.storeView.currentStore || window.storeBuilder.getCurrentStore())" title="Share to Telegram">
               ✈️
             </button>
@@ -150,6 +153,11 @@ class StoreView {
 
         <!-- Dynamic Store Blocks -->
         ${blocksHtml}
+
+        <!-- Store Footer -->
+        <footer style="text-align: center; padding: 2rem 1rem 5rem 1rem; color: var(--text-muted); font-size: 0.78rem;">
+          <div>🛍️ ${storeDisplayName} • Powered by <strong style="color: #70C5FB;">OmniMini Telegram</strong></div>
+        </footer>
 
         <!-- Floating Cart Bar (Appears when cart > 0) -->
         ${totalCartCount > 0 ? `
@@ -258,17 +266,10 @@ class StoreView {
             ${optGroup.required ? `<span style="color: #EF4444; font-size: 0.75rem;">Required</span>` : ''}
           </div>
           ${optGroup.choices.map((choice, cIdx) => `
-            <label class="option-item">
-              <div style="display: flex; align-items: center; gap: 0.5rem;">
-                <input type="${optGroup.type === 'checkbox' ? 'checkbox' : 'radio'}" 
-                       name="opt_group_${gIdx}" 
-                       value="${choice.label}" 
-                       data-price="${choice.priceModifier || 0}"
-                       ${optGroup.type === 'radio' && cIdx === 0 ? 'checked' : ''}
-                       onchange="window.storeView.recalculateDetailModalPrice(${product.price})">
-                <span>${choice.label}</span>
-              </div>
-              ${choice.priceModifier > 0 ? `<span style="color: var(--accent-gold); font-weight: 700;">+$${choice.priceModifier.toFixed(2)}</span>` : ''}
+            <label class="option-choice-row">
+              <input type="${optGroup.type === 'multiple' ? 'checkbox' : 'radio'}" name="opt_group_${gIdx}" value="${choice.name}" data-price="${choice.price || 0}" ${cIdx === 0 && optGroup.required ? 'checked' : ''}>
+              <span>${choice.name}</span>
+              ${choice.price ? `<span style="color: var(--accent-gold); font-size: 0.8rem;">+$${choice.price.toFixed(2)}</span>` : ''}
             </label>
           `).join('')}
         `;
@@ -276,50 +277,44 @@ class StoreView {
       });
     }
 
-    const addBtn = document.getElementById("detailModalAddBtn");
-    addBtn.onclick = () => {
-      const selectedOpts = [];
-      let totalOptionPrice = 0;
+    document.getElementById("detailModalQty").textContent = "1";
+    document.getElementById("detailModalAddBtn").onclick = () => {
+      const qty = parseInt(document.getElementById("detailModalQty").textContent) || 1;
+      const selectedOptions = [];
+      let extraPrice = 0;
 
-      modal.querySelectorAll("input:checked").forEach(input => {
-        selectedOpts.push(input.value);
-        totalOptionPrice += parseFloat(input.dataset.price) || 0;
+      optionsContainer.querySelectorAll("input:checked").forEach(input => {
+        selectedOptions.push(input.value);
+        extraPrice += parseFloat(input.dataset.price) || 0;
       });
 
-      const finalPrice = product.price + totalOptionPrice;
-      this.addToCart(product, 1, selectedOpts, finalPrice);
+      this.addToCart(product, qty, selectedOptions, product.price + extraPrice);
       modal.classList.remove("active");
     };
 
     modal.classList.add("active");
   }
 
-  recalculateDetailModalPrice(basePrice) {
+  updateDetailModalQty(change) {
     if (window.telegramTma) window.telegramTma.hapticImpact("light");
-    const modal = document.getElementById("storeProductDetailModal");
-    if (!modal) return;
-
-    let extra = 0;
-    modal.querySelectorAll("input:checked").forEach(input => {
-      extra += parseFloat(input.dataset.price) || 0;
-    });
-
-    const total = basePrice + extra;
-    document.getElementById("detailModalPrice").textContent = `$${total.toFixed(2)}`;
+    const qtyEl = document.getElementById("detailModalQty");
+    let qty = parseInt(qtyEl.textContent) || 1;
+    qty = Math.max(1, qty + change);
+    qtyEl.textContent = qty;
   }
 
   addToCart(product, qty, selectedOptions, unitPrice) {
-    if (window.telegramTma) window.telegramTma.hapticImpact("medium");
+    if (window.telegramTma) window.telegramTma.hapticNotification("success");
     if (window.khqrService) window.khqrService.playPopSound();
 
-    const existingIdx = this.cart.findIndex(i => 
-      i.product.id === product.id && 
-      JSON.stringify(i.selectedOptions) === JSON.stringify(selectedOptions)
+    const existingIndex = this.cart.findIndex(item => 
+      item.product.id === product.id && 
+      JSON.stringify(item.selectedOptions) === JSON.stringify(selectedOptions)
     );
 
-    if (existingIdx > -1) {
-      this.cart[existingIdx].qty += qty;
-      this.cart[existingIdx].lineTotal = this.cart[existingIdx].qty * unitPrice;
+    if (existingIndex > -1) {
+      this.cart[existingIndex].qty += qty;
+      this.cart[existingIndex].lineTotal = this.cart[existingIndex].qty * this.cart[existingIndex].unitPrice;
     } else {
       this.cart.push({
         product,
@@ -330,16 +325,15 @@ class StoreView {
       });
     }
 
-    window.app.showToast(`+ Added ${product.name} to Cart`, "success");
+    window.app.showToast(`+${qty} ${product.name} ${window.storeEngine.t("itemAdded")}`, "success");
     this.refreshCurrentView();
   }
 
   refreshCurrentView() {
-    if (window.app.currentView === "store" && this.currentStore) {
-      this.renderFullStore(this.currentStore);
-    }
     if (window.app.currentView === "builder") {
-      window.storeBuilder.updateSimulator(window.storeBuilder.getCurrentStore());
+      window.storeBuilder.updateSimulator(this.currentStore);
+    } else {
+      this.renderFullStore(this.currentStore);
     }
   }
 
@@ -480,7 +474,7 @@ class StoreView {
     const modal = document.getElementById("khqrPaymentModal");
     const canvas = document.getElementById("khqrCanvas");
 
-    document.getElementById("khqrModalStoreName").textContent = this.currentStore.name;
+    document.getElementById("khqrModalStoreName").textContent = this.currentStore.nameKh || this.currentStore.name;
     document.getElementById("khqrModalAmount").textContent = `$${order.total.toFixed(2)}`;
     document.getElementById("khqrModalAmountKhr").textContent = `${order.totalKhr.toLocaleString()} ៛`;
 
@@ -529,6 +523,10 @@ class StoreView {
       step.classList.toggle("completed", idx < currentIdx);
       step.classList.toggle("active", idx === currentIdx);
     });
+  }
+
+  openCustomerOrdersModal() {
+    window.app.switchView("orders");
   }
 }
 

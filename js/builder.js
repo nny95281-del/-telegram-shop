@@ -7,6 +7,7 @@ class StoreBuilder {
     this.currentStoreId = null;
     this.currentTab = "identity";
     this.editingProductId = null;
+    this.ordersFilter = "all";
     this.init();
   }
 
@@ -18,20 +19,29 @@ class StoreBuilder {
         if (this.currentStoreId) {
           this.loadStore(this.currentStoreId);
         }
+      } else if (event === "orders_updated") {
+        const store = this.getCurrentStore();
+        if (store) this.renderStoreOrders(store);
       }
     });
   }
 
   setCurrentStore(storeId) {
     this.currentStoreId = storeId;
+    localStorage.setItem("omnimini_active_merchant_store", storeId);
     this.loadStore(storeId);
   }
 
   getCurrentStore() {
     if (!this.currentStoreId) {
-      const stores = window.storeEngine.getAllStores();
-      if (stores.length > 0) {
-        this.currentStoreId = stores[0].id;
+      const savedStoreId = localStorage.getItem("omnimini_active_merchant_store");
+      if (savedStoreId && window.storeEngine.getStoreById(savedStoreId)) {
+        this.currentStoreId = savedStoreId;
+      } else {
+        const stores = window.storeEngine.getAllStores();
+        if (stores.length > 0) {
+          this.currentStoreId = stores[0].id;
+        }
       }
     }
     return window.storeEngine.getStoreById(this.currentStoreId);
@@ -46,7 +56,7 @@ class StoreBuilder {
     stores.forEach(store => {
       const opt = document.createElement("option");
       opt.value = store.id;
-      opt.textContent = `${store.name} (${store.category})`;
+      opt.textContent = `${store.nameKh || store.name} (${store.category})`;
       if (store.id === this.currentStoreId) {
         opt.selected = true;
       }
@@ -63,6 +73,14 @@ class StoreBuilder {
     document.querySelectorAll(".tab-pane").forEach(pane => {
       pane.classList.toggle("active", pane.id === `tab_${tabId}`);
     });
+
+    const store = this.getCurrentStore();
+    if (store) {
+      if (tabId === "orders") this.renderStoreOrders(store);
+      if (tabId === "share") this.renderShareTab(store);
+      if (tabId === "products") this.renderProductsTable(store);
+      if (tabId === "blocks") this.renderBlocksList(store);
+    }
   }
 
   loadStore(storeId) {
@@ -71,6 +89,12 @@ class StoreBuilder {
 
     this.currentStoreId = store.id;
     this.populateStoreSelector();
+
+    // Fill Top Link Bar if present
+    const topLinkEl = document.getElementById("builderTopTgLink");
+    if (topLinkEl && window.telegramTma) {
+      topLinkEl.value = window.telegramTma.getTelegramStoreLink(store.slug);
+    }
 
     // 1. Fill Identity Form
     const nameEl = document.getElementById("inputStoreName");
@@ -97,115 +121,50 @@ class StoreBuilder {
     const cardBgEl = document.getElementById("inputCardBgColor");
 
     if (primaryEl) {
-      primaryEl.value = store.theme.primaryColor || "#0F766E";
-      document.getElementById("codePrimaryColor").textContent = store.theme.primaryColor;
+      primaryEl.value = store.theme?.primaryColor || "#0F766E";
+      const codePrimary = document.getElementById("codePrimaryColor");
+      if (codePrimary) codePrimary.textContent = primaryEl.value;
     }
     if (secondaryEl) {
-      secondaryEl.value = store.theme.secondaryColor || "#14B8A6";
-      document.getElementById("codeSecondaryColor").textContent = store.theme.secondaryColor;
+      secondaryEl.value = store.theme?.secondaryColor || "#14B8A6";
+      const codeSecondary = document.getElementById("codeSecondaryColor");
+      if (codeSecondary) codeSecondary.textContent = secondaryEl.value;
     }
     if (accentEl) {
-      accentEl.value = store.theme.accentColor || "#F59E0B";
-      document.getElementById("codeAccentColor").textContent = store.theme.accentColor;
+      accentEl.value = store.theme?.accentColor || "#F59E0B";
+      const codeAccent = document.getElementById("codeAccentColor");
+      if (codeAccent) codeAccent.textContent = accentEl.value;
     }
     if (bgEl) {
-      bgEl.value = store.theme.bgColor || "#0F172A";
-      document.getElementById("codeBgColor").textContent = store.theme.bgColor;
+      bgEl.value = store.theme?.bgColor || "#0F172A";
+      const codeBg = document.getElementById("codeBgColor");
+      if (codeBg) codeBg.textContent = bgEl.value;
     }
     if (cardBgEl) {
-      cardBgEl.value = store.theme.cardBg || "#1E293B";
-      document.getElementById("codeCardBgColor").textContent = store.theme.cardBg;
+      cardBgEl.value = store.theme?.cardBg || "#1E293B";
+      const codeCardBg = document.getElementById("codeCardBgColor");
+      if (codeCardBg) codeCardBg.textContent = cardBgEl.value;
     }
 
     // 3. Fill Payment Config
-    const khqrNameEl = document.getElementById("inputKhqrMerchantName");
+    const khqrMerchantEl = document.getElementById("inputKhqrMerchantName");
     const khqrBakongEl = document.getElementById("inputKhqrBakongId");
-    const khqrAccEl = document.getElementById("inputKhqrAccount");
+    const khqrAccountEl = document.getElementById("inputKhqrAccount");
     const enableKhqrEl = document.getElementById("inputEnableKhqr");
     const enableCodEl = document.getElementById("inputEnableCod");
 
-    if (khqrNameEl) khqrNameEl.value = store.paymentConfig?.khqrMerchantName || store.name.toUpperCase();
+    if (khqrMerchantEl) khqrMerchantEl.value = store.paymentConfig?.khqrMerchantName || store.name || "";
     if (khqrBakongEl) khqrBakongEl.value = store.paymentConfig?.khqrBakongId || "merchant@aba";
-    if (khqrAccEl) khqrAccEl.value = store.paymentConfig?.khqrAccountId || "000 111 222";
+    if (khqrAccountEl) khqrAccountEl.value = store.paymentConfig?.khqrAccountId || "012 345 678";
     if (enableKhqrEl) enableKhqrEl.checked = store.paymentConfig?.enableKhqr !== false;
     if (enableCodEl) enableCodEl.checked = store.paymentConfig?.enableCod !== false;
 
-    // 4. Render Blocks Checkboxes
-    this.renderBlocksConfig(store);
-
-    // 5. Render Products Table
+    // Render Sub-components
+    this.renderBlocksList(store);
     this.renderProductsTable(store);
-
-    // 6. Render Store Orders
     this.renderStoreOrders(store);
-
-    // 7. Render Share / Telegram QR tab
     this.renderShareTab(store);
-
-    // 8. Update Live Simulator Mockup
     this.updateSimulator(store);
-  }
-
-  applyPresetTheme(themeName) {
-    const store = this.getCurrentStore();
-    if (!store) return;
-
-    if (window.telegramTma) window.telegramTma.hapticImpact("medium");
-
-    const presets = {
-      emerald: {
-        primaryColor: "#0F766E",
-        secondaryColor: "#14B8A6",
-        accentColor: "#F59E0B",
-        bgColor: "#0B1522",
-        textColor: "#F8FAFC",
-        cardBg: "#162235",
-        borderRadius: "16px"
-      },
-      rose: {
-        primaryColor: "#E11D48",
-        secondaryColor: "#BE123C",
-        accentColor: "#FB7185",
-        bgColor: "#09090B",
-        textColor: "#FAFAFA",
-        cardBg: "#18181B",
-        borderRadius: "12px"
-      },
-      cyberpunk: {
-        primaryColor: "#6366F1",
-        secondaryColor: "#8B5CF6",
-        accentColor: "#EC4899",
-        bgColor: "#050816",
-        textColor: "#F9FAFB",
-        cardBg: "#0F172A",
-        borderRadius: "14px"
-      },
-      amber: {
-        primaryColor: "#D97706",
-        secondaryColor: "#F59E0B",
-        accentColor: "#34D399",
-        bgColor: "#1C140C",
-        textColor: "#FFFBEB",
-        cardBg: "#291D11",
-        borderRadius: "18px"
-      },
-      darkluxe: {
-        primaryColor: "#38BDF8",
-        secondaryColor: "#0284C7",
-        accentColor: "#F43F5E",
-        bgColor: "#000000",
-        textColor: "#FFFFFF",
-        cardBg: "#121212",
-        borderRadius: "10px"
-      }
-    };
-
-    if (presets[themeName]) {
-      store.theme = { ...presets[themeName] };
-      window.storeEngine.updateStore(store.id, { theme: store.theme });
-      this.loadStore(store.id);
-      window.app.showToast(window.storeEngine.t("saveChanges") + ` (${themeName})`, "success");
-    }
   }
 
   handleInputChange() {
@@ -220,29 +179,26 @@ class StoreBuilder {
     const banner = document.getElementById("inputStoreBanner")?.value || store.banner;
     const category = document.getElementById("selectStoreCategory")?.value || store.category;
 
-    const primaryColor = document.getElementById("inputPrimaryColor")?.value || store.theme.primaryColor;
-    const secondaryColor = document.getElementById("inputSecondaryColor")?.value || store.theme.secondaryColor;
-    const accentColor = document.getElementById("inputAccentColor")?.value || store.theme.accentColor;
-    const bgColor = document.getElementById("inputBgColor")?.value || store.theme.bgColor;
-    const cardBg = document.getElementById("inputCardBgColor")?.value || store.theme.cardBg;
+    const primaryColor = document.getElementById("inputPrimaryColor")?.value || store.theme?.primaryColor;
+    const secondaryColor = document.getElementById("inputSecondaryColor")?.value || store.theme?.secondaryColor;
+    const accentColor = document.getElementById("inputAccentColor")?.value || store.theme?.accentColor;
+    const bgColor = document.getElementById("inputBgColor")?.value || store.theme?.bgColor;
+    const cardBg = document.getElementById("inputCardBgColor")?.value || store.theme?.cardBg;
 
+    // Update Color Code Previews
     if (document.getElementById("codePrimaryColor")) document.getElementById("codePrimaryColor").textContent = primaryColor;
     if (document.getElementById("codeSecondaryColor")) document.getElementById("codeSecondaryColor").textContent = secondaryColor;
     if (document.getElementById("codeAccentColor")) document.getElementById("codeAccentColor").textContent = accentColor;
     if (document.getElementById("codeBgColor")) document.getElementById("codeBgColor").textContent = bgColor;
     if (document.getElementById("codeCardBgColor")) document.getElementById("codeCardBgColor").textContent = cardBg;
 
-    const paymentConfig = {
-      khqrMerchantName: document.getElementById("inputKhqrMerchantName")?.value || store.name.toUpperCase(),
-      khqrBakongId: document.getElementById("inputKhqrBakongId")?.value || "merchant@aba",
-      khqrAccountId: document.getElementById("inputKhqrAccount")?.value || "000 111 222",
-      enableKhqr: document.getElementById("inputEnableKhqr")?.checked,
-      enableCod: document.getElementById("inputEnableCod")?.checked,
-      currency: "USD",
-      usdRateToKhr: 4100
-    };
+    const khqrMerchantName = document.getElementById("inputKhqrMerchantName")?.value || store.paymentConfig?.khqrMerchantName;
+    const khqrBakongId = document.getElementById("inputKhqrBakongId")?.value || store.paymentConfig?.khqrBakongId;
+    const khqrAccountId = document.getElementById("inputKhqrAccount")?.value || store.paymentConfig?.khqrAccountId;
+    const enableKhqr = document.getElementById("inputEnableKhqr") ? document.getElementById("inputEnableKhqr").checked : true;
+    const enableCod = document.getElementById("inputEnableCod") ? document.getElementById("inputEnableCod").checked : true;
 
-    const updated = window.storeEngine.updateStore(store.id, {
+    window.storeEngine.updateStore(store.id, {
       name,
       nameKh,
       tagline,
@@ -255,123 +211,147 @@ class StoreBuilder {
         secondaryColor,
         accentColor,
         bgColor,
-        cardBg,
-        textColor: "#FFFFFF",
-        borderRadius: store.theme.borderRadius || "16px"
+        cardBg
       },
-      paymentConfig
+      paymentConfig: {
+        khqrMerchantName,
+        khqrBakongId,
+        khqrAccountId,
+        enableKhqr,
+        enableCod
+      }
     });
 
-    this.updateSimulator(updated);
+    const updatedStore = this.getCurrentStore();
+    this.updateSimulator(updatedStore);
   }
 
-  renderBlocksConfig(store) {
+  applyPresetTheme(themeKey) {
+    if (window.telegramTma) window.telegramTma.hapticImpact("light");
+    const store = this.getCurrentStore();
+    if (!store) return;
+
+    const presets = {
+      emerald: { primaryColor: "#0F766E", secondaryColor: "#14B8A6", accentColor: "#F59E0B", bgColor: "#0F172A", cardBg: "#1E293B" },
+      rose: { primaryColor: "#E11D48", secondaryColor: "#BE123C", accentColor: "#FB7185", bgColor: "#18181B", cardBg: "#27272A" },
+      cyberpunk: { primaryColor: "#6366F1", secondaryColor: "#8B5CF6", accentColor: "#EC4899", bgColor: "#0B0F19", cardBg: "#1E1B4B" },
+      amber: { primaryColor: "#D97706", secondaryColor: "#F59E0B", accentColor: "#34D399", bgColor: "#1C1917", cardBg: "#292524" },
+      darkluxe: { primaryColor: "#38BDF8", secondaryColor: "#0284C7", accentColor: "#F43F5E", bgColor: "#000000", cardBg: "#111827" }
+    };
+
+    const preset = presets[themeKey];
+    if (preset) {
+      window.storeEngine.updateStore(store.id, { theme: preset });
+      this.loadStore(store.id);
+      window.app.showToast(`Applied ${themeKey.toUpperCase()} theme!`, "success");
+    }
+  }
+
+  renderBlocksList(store) {
     const container = document.getElementById("builderBlocksList");
     if (!container) return;
 
-    container.innerHTML = "";
-    const blockIcons = {
-      hero_banner: "🖼️",
-      announcement: "📢",
-      category_bar: "🏷️",
-      featured_products: "⭐",
-      product_grid: "📦",
-      store_info: "📍"
-    };
-
-    store.blocks.forEach(block => {
-      const card = document.createElement("div");
-      card.className = "block-item-card";
-      card.innerHTML = `
+    container.innerHTML = store.blocks.map(b => `
+      <div class="block-item-card">
         <div class="block-item-info">
-          <div class="block-item-icon">${blockIcons[block.type] || "🧱"}</div>
+          <span class="block-item-icon">📌</span>
           <div>
-            <div class="block-item-title">${block.title || block.type.replace('_', ' ').toUpperCase()}</div>
-            <div class="block-item-subtitle">${block.subtitle || block.text || block.type}</div>
+            <strong style="color: #FFFFFF; font-size: 0.9rem;">${b.title || b.type.replace('_', ' ').toUpperCase()}</strong>
+            <div style="font-size: 0.75rem; color: var(--text-muted);">${b.type}</div>
           </div>
         </div>
-        <label class="switch">
-          <input type="checkbox" data-block-id="${block.id}" ${block.enabled !== false ? 'checked' : ''}>
+        <label class="switch-toggle">
+          <input type="checkbox" ${b.enabled !== false ? 'checked' : ''} onchange="window.storeBuilder.toggleBlock('${b.id}', this.checked)">
           <span class="slider"></span>
         </label>
-      `;
+      </div>
+    `).join('');
+  }
 
-      const check = card.querySelector('input[type="checkbox"]');
-      check.addEventListener("change", (e) => {
-        if (window.telegramTma) window.telegramTma.hapticImpact("light");
-        block.enabled = e.target.checked;
-        window.storeEngine.updateStore(store.id, { blocks: store.blocks });
-        this.updateSimulator(store);
-      });
+  toggleBlock(blockId, isEnabled) {
+    const store = this.getCurrentStore();
+    if (!store) return;
 
-      container.appendChild(card);
-    });
+    const block = store.blocks.find(b => b.id === blockId);
+    if (block) {
+      block.enabled = isEnabled;
+      window.storeEngine.updateStore(store.id, { blocks: store.blocks });
+      this.updateSimulator(store);
+    }
   }
 
   renderProductsTable(store) {
     const tbody = document.getElementById("builderProductsTableBody");
     if (!tbody) return;
 
-    tbody.innerHTML = "";
     if (!store.products || store.products.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 2rem;">${window.storeEngine.t("noProductsYet")}</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 2rem;">មិនទាន់មានមុខទំនិញនៅឡើយទេ។ ចុច "+ បន្ថែមទំនិញថ្មី" ដើម្បីបង្កើត!</td></tr>`;
       return;
     }
 
-    store.products.forEach(p => {
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
+    tbody.innerHTML = store.products.map(p => `
+      <tr>
         <td>
-          <div style="display: flex; align-items: center; gap: 0.65rem;">
-            <img src="${p.image}" class="product-row-thumb" alt="${p.name}">
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <img src="${p.image}" class="prod-table-thumb" alt="${p.name}">
             <div>
-              <div style="font-weight: 700; color: #FFFFFF;">${p.name}</div>
-              <div style="font-size: 0.75rem; color: var(--text-muted);">${p.nameKh || ''}</div>
+              <strong style="color: #FFFFFF; font-size: 0.88rem;">${p.nameKh || p.name}</strong>
+              <div style="font-size: 0.72rem; color: var(--text-muted);">${p.name}</div>
             </div>
           </div>
         </td>
-        <td><span style="color: #10B981; font-weight: 700;">$${p.price.toFixed(2)}</span></td>
-        <td><span style="font-size: 0.75rem; background: rgba(255,255,255,0.08); padding: 0.2rem 0.5rem; border-radius: 4px;">${p.categoryId}</span></td>
         <td>
-          <button class="btn btn-secondary btn-sm" onclick="window.storeBuilder.openEditProductModal('${p.id}')">✏️ ${window.storeEngine.t("edit")}</button>
-          <button class="btn btn-danger btn-sm" onclick="window.storeBuilder.deleteProductPrompt('${p.id}')">🗑️ ${window.storeEngine.t("delete")}</button>
+          <span style="font-weight: 700; color: var(--accent-gold);">$${p.price.toFixed(2)}</span>
+          ${p.originalPrice ? `<div style="font-size: 0.72rem; text-decoration: line-through; color: var(--text-muted);">$${p.originalPrice.toFixed(2)}</div>` : ''}
         </td>
-      `;
-      tbody.appendChild(tr);
-    });
+        <td>
+          <span class="badge-category">${p.categoryId}</span>
+        </td>
+        <td>
+          <div style="display: flex; gap: 0.4rem;">
+            <button class="btn btn-secondary btn-sm" onclick="window.storeBuilder.openEditProductModal('${p.id}')">✏️</button>
+            <button class="btn btn-danger btn-sm" onclick="window.storeBuilder.deleteProductPrompt('${p.id}')">🗑️</button>
+          </div>
+        </td>
+      </tr>
+    `).join('');
   }
 
   openAddProductModal() {
-    if (window.telegramTma) window.telegramTma.hapticImpact("light");
     this.editingProductId = null;
-    document.getElementById("modalProductTitle").textContent = window.storeEngine.t("addProductBtn");
+    const store = this.getCurrentStore();
+    if (!store) return;
+
+    document.getElementById("productModalTitle").textContent = "+ បន្ថែមទំនិញថ្មី (Add Product)";
     document.getElementById("prodFormName").value = "";
     document.getElementById("prodFormNameKh").value = "";
     document.getElementById("prodFormPrice").value = "";
     document.getElementById("prodFormOrigPrice").value = "";
-    document.getElementById("prodFormImage").value = "https://images.unsplash.com/photo-1541643600914-78b084683601?w=500&auto=format&fit=crop&q=80";
+    document.getElementById("prodFormImage").value = "";
     document.getElementById("prodFormDesc").value = "";
     document.getElementById("prodFormDescKh").value = "";
     document.getElementById("prodFormBadge").value = "";
 
-    const store = this.getCurrentStore();
+    // Categories dropdown
     const catSelect = document.getElementById("prodFormCategory");
-    if (catSelect && store) {
-      catSelect.innerHTML = store.categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+    if (catSelect) {
+      catSelect.innerHTML = store.categories.map(c => `
+        <option value="${c.id}">${c.name}</option>
+      `).join('');
     }
 
     document.getElementById("productModalOverlay").classList.add("active");
   }
 
   openEditProductModal(productId) {
-    if (window.telegramTma) window.telegramTma.hapticImpact("light");
     const store = this.getCurrentStore();
     if (!store) return;
+
     const prod = store.products.find(p => p.id === productId);
     if (!prod) return;
 
     this.editingProductId = productId;
-    document.getElementById("modalProductTitle").textContent = `${window.storeEngine.t("edit")}: ${prod.name}`;
+    document.getElementById("productModalTitle").textContent = "✏️ កែសម្រួលទំនិញ (Edit Product)";
     document.getElementById("prodFormName").value = prod.name || "";
     document.getElementById("prodFormNameKh").value = prod.nameKh || "";
     document.getElementById("prodFormPrice").value = prod.price || "";
@@ -383,13 +363,15 @@ class StoreBuilder {
 
     const catSelect = document.getElementById("prodFormCategory");
     if (catSelect) {
-      catSelect.innerHTML = store.categories.map(c => `<option value="${c.id}" ${c.id === prod.categoryId ? 'selected' : ''}>${c.name}</option>`).join('');
+      catSelect.innerHTML = store.categories.map(c => `
+        <option value="${c.id}" ${c.id === prod.categoryId ? 'selected' : ''}>${c.name}</option>
+      `).join('');
     }
 
     document.getElementById("productModalOverlay").classList.add("active");
   }
 
-  saveProductModal() {
+  saveProductForm() {
     const store = this.getCurrentStore();
     if (!store) return;
 
@@ -404,7 +386,7 @@ class StoreBuilder {
     const categoryId = document.getElementById("prodFormCategory").value;
 
     if (!name || price <= 0) {
-      window.app.showToast("Please enter product name and a valid price", "warning");
+      window.app.showToast("សូមបញ្ចូលឈ្មោះទំនិញ និងតម្លៃត្រឹមត្រូវ", "warning");
       return;
     }
 
@@ -422,10 +404,10 @@ class StoreBuilder {
 
     if (this.editingProductId) {
       window.storeEngine.updateProduct(store.id, this.editingProductId, productPayload);
-      window.app.showToast("Product updated successfully", "success");
+      window.app.showToast("បានកែសម្រួលទំនិញរួចរាល់!", "success");
     } else {
       window.storeEngine.addProduct(store.id, productPayload);
-      window.app.showToast("Product created successfully", "success");
+      window.app.showToast("បានបន្ថែមទំនិញថ្មីជោគជ័យ!", "success");
     }
 
     if (window.telegramTma) window.telegramTma.hapticImpact("medium");
@@ -439,11 +421,11 @@ class StoreBuilder {
     const store = this.getCurrentStore();
     if (!store) return;
 
-    if (confirm("Are you sure you want to delete this product?")) {
+    if (confirm("តើអ្នកពិតជាចង់លុបទំនិញនេះមែនទេ?")) {
       window.storeEngine.deleteProduct(store.id, productId);
       this.renderProductsTable(store);
       this.updateSimulator(store);
-      window.app.showToast("Product removed", "info");
+      window.app.showToast("បានលុបទំនិញរួចរាល់", "info");
     }
   }
 
@@ -452,42 +434,76 @@ class StoreBuilder {
     if (!container) return;
 
     const orders = window.storeEngine.getOrdersForStore(store.id);
+    const totalRev = orders.reduce((sum, o) => sum + (o.paymentStatus === 'PAID' ? o.total : 0), 0);
+    const pendingOrders = orders.filter(o => o.status === 'PENDING' || o.status === 'PREPARING').length;
+
+    let filterHtml = `
+      <div class="orders-summary-cards" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.75rem; margin-bottom: 1.25rem;">
+        <div style="background: rgba(36, 161, 222, 0.12); border: 1px solid rgba(36, 161, 222, 0.3); border-radius: 12px; padding: 0.85rem;">
+          <div style="font-size: 0.75rem; color: #70C5FB;">ការកុម្ម៉ង់សរុប</div>
+          <div style="font-size: 1.4rem; font-weight: 800; color: #FFFFFF;">${orders.length}</div>
+        </div>
+        <div style="background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 12px; padding: 0.85rem;">
+          <div style="font-size: 0.75rem; color: #F59E0B;">កំពុងរង់ចាំ/ធ្វើ</div>
+          <div style="font-size: 1.4rem; font-weight: 800; color: #FFFFFF;">${pendingOrders}</div>
+        </div>
+        <div style="background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 12px; padding: 0.85rem;">
+          <div style="font-size: 0.75rem; color: #10B981;">ប្រាក់ចំណូលសរុប</div>
+          <div style="font-size: 1.4rem; font-weight: 800; color: #10B981;">$${totalRev.toFixed(2)}</div>
+        </div>
+      </div>
+    `;
+
     if (orders.length === 0) {
-      container.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 3rem;">No orders placed for this mini app yet.</div>`;
+      container.innerHTML = filterHtml + `<div style="text-align: center; color: var(--text-muted); padding: 3rem; background: var(--bg-card); border-radius: 16px;">មិនទាន់មានការបញ្ជាទិញសម្រាប់ហាងនេះនៅឡើយទេ។ ផ្ញើ Link Mini App ឱ្យភ្ញៀវដើម្បីចាប់ផ្តើមទទួល Order!</div>`;
       return;
     }
 
-    container.innerHTML = orders.map(ord => `
-      <div class="store-card" style="margin-bottom: 1rem; padding: 1rem;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+    container.innerHTML = filterHtml + orders.map(ord => `
+      <div class="store-card" style="margin-bottom: 1rem; padding: 1.1rem; border-radius: 14px; background: var(--bg-card); border: 1px solid rgba(255,255,255,0.08);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 0.5rem;">
           <div>
-            <strong style="color: #FFFFFF; font-size: 1rem;">#${ord.id}</strong>
-            <span style="font-size: 0.75rem; color: var(--text-muted); margin-left: 0.5rem;">${new Date(ord.createdAt).toLocaleTimeString()}</span>
+            <strong style="color: #FFFFFF; font-size: 1.05rem;">#${ord.id}</strong>
+            <span style="font-size: 0.75rem; color: var(--text-muted); margin-left: 0.5rem;">${new Date(ord.createdAt).toLocaleTimeString()} (${new Date(ord.createdAt).toLocaleDateString()})</span>
           </div>
           <div style="display: flex; align-items: center; gap: 0.5rem;">
-            <select class="form-select btn-sm" onchange="window.storeEngine.updateOrderStatus('${ord.id}', this.value); window.storeBuilder.renderStoreOrders(window.storeBuilder.getCurrentStore());" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">
-              <option value="PENDING" ${ord.status === 'PENDING' ? 'selected' : ''}>⏳ Pending</option>
-              <option value="PREPARING" ${ord.status === 'PREPARING' ? 'selected' : ''}>👨‍🍳 Preparing</option>
-              <option value="DELIVERING" ${ord.status === 'DELIVERING' ? 'selected' : ''}>🛵 Delivering</option>
-              <option value="COMPLETED" ${ord.status === 'COMPLETED' ? 'selected' : ''}>✅ Completed</option>
-            </select>
-            <span style="font-size: 0.75rem; font-weight: 700; background: ${ord.paymentStatus === 'PAID' ? 'rgba(16,185,129,0.2)' : 'rgba(245,158,11,0.2)'}; color: ${ord.paymentStatus === 'PAID' ? '#10B981' : '#F59E0B'}; padding: 0.2rem 0.5rem; border-radius: 4px;">${ord.paymentStatus}</span>
+            <span style="font-size: 0.75rem; font-weight: 700; background: ${ord.paymentStatus === 'PAID' ? 'rgba(16,185,129,0.2)' : 'rgba(245,158,11,0.2)'}; color: ${ord.paymentStatus === 'PAID' ? '#10B981' : '#F59E0B'}; padding: 0.25rem 0.6rem; border-radius: 6px;">
+              ${ord.paymentMethod}: ${ord.paymentStatus}
+            </span>
           </div>
         </div>
-        <div style="font-size: 0.85rem; margin-bottom: 0.5rem; color: var(--text-secondary);">
-          Customer: <strong style="color: #FFFFFF;">${ord.customer.name}</strong> (${ord.customer.phone}) - ${ord.customer.address}
+        
+        <div style="font-size: 0.88rem; margin-bottom: 0.65rem; color: #E2E8F0;">
+          👤 <strong>${ord.customer.name}</strong> • 📞 <a href="tel:${ord.customer.phone}" style="color: #38BDF8; font-weight: 700;">${ord.customer.phone}</a><br>
+          📍 អាសយដ្ឋាន: <span style="color: #94A3B8;">${ord.customer.address}</span>
+          ${ord.customer.notes ? `<div style="font-size: 0.78rem; color: #F59E0B; margin-top: 0.2rem;">📝 ចំណាំ: ${ord.customer.notes}</div>` : ''}
         </div>
-        <div style="background: rgba(0,0,0,0.2); padding: 0.6rem; border-radius: 8px; font-size: 0.8rem; margin-bottom: 0.5rem;">
+
+        <div style="background: rgba(0,0,0,0.25); padding: 0.75rem; border-radius: 8px; font-size: 0.83rem; margin-bottom: 0.75rem;">
           ${ord.items.map(item => `
-            <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
-              <span>${item.qty}x ${item.name}</span>
-              <span style="font-weight: 700;">$${item.lineTotal.toFixed(2)}</span>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 0.35rem;">
+              <span>${item.qty}x <strong>${item.name}</strong> ${item.options?.length ? `(${item.options.join(', ')})` : ''}</span>
+              <span style="font-weight: 700; color: #F8FAFC;">$${item.lineTotal.toFixed(2)}</span>
             </div>
           `).join('')}
+          <div style="border-top: 1px dashed rgba(255,255,255,0.1); margin-top: 0.4rem; padding-top: 0.4rem; display: flex; justify-content: space-between; font-size: 0.78rem; color: var(--text-muted);">
+            <span>ថ្លៃដឹកជញ្ជូន (Delivery):</span>
+            <span>$${(ord.deliveryFee || 0).toFixed(2)}</span>
+          </div>
         </div>
-        <div style="display: flex; justify-content: space-between; font-weight: 700; font-size: 0.95rem; color: var(--accent-gold);">
-          <span>Total:</span>
-          <span>$${ord.total.toFixed(2)} (${ord.totalKhr.toLocaleString()} ៛)</span>
+
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div style="font-weight: 800; font-size: 1.1rem; color: var(--accent-gold);">
+            $${ord.total.toFixed(2)} <span style="font-size: 0.8rem; font-weight: normal; color: var(--text-muted);">(${ord.totalKhr.toLocaleString()} ៛)</span>
+          </div>
+          <div style="display: flex; gap: 0.4rem; align-items: center;">
+            <select class="form-select btn-sm" onchange="window.storeEngine.updateOrderStatus('${ord.id}', this.value); window.storeBuilder.renderStoreOrders(window.storeBuilder.getCurrentStore()); window.app.showToast('បានប្តូរស្ថានភាព Order!', 'success');" style="padding: 0.35rem 0.6rem; font-size: 0.8rem; border-radius: 8px;">
+              <option value="PENDING" ${ord.status === 'PENDING' ? 'selected' : ''}>⏳ មិនទាន់ទទួល</option>
+              <option value="PREPARING" ${ord.status === 'PREPARING' ? 'selected' : ''}>👨‍🍳 កំពុងរៀបចំ</option>
+              <option value="DELIVERING" ${ord.status === 'DELIVERING' ? 'selected' : ''}>🛵 កំពុងដឹកជញ្ជូន</option>
+              <option value="COMPLETED" ${ord.status === 'COMPLETED' ? 'selected' : ''}>✅ បានបញ្ចប់</option>
+            </select>
+          </div>
         </div>
       </div>
     `).join('');
@@ -506,7 +522,7 @@ class StoreBuilder {
 
     if (qrCanvas && window.khqrService) {
       window.khqrService.renderKhqrCanvas(qrCanvas, {
-        merchantName: store.name,
+        merchantName: store.nameKh || store.name,
         bakongId: store.paymentConfig?.khqrBakongId || "merchant@aba",
         amount: 0,
         currency: "USD"
