@@ -111,6 +111,12 @@ class App {
   switchView(viewName) {
     this.currentView = viewName;
 
+    if (viewName === "store") {
+      document.body.classList.add("in-store-view");
+    } else {
+      document.body.classList.remove("in-store-view");
+    }
+
     document.querySelectorAll(".nav-btn").forEach(btn => {
       btn.classList.toggle("active", btn.dataset.view === viewName);
     });

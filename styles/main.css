@@ -95,6 +95,15 @@ body {
   gap: 1rem;
 }
 
+body.in-store-view .app-header {
+  display: none !important;
+}
+
+body.in-store-view .main-content {
+  padding: 0 !important;
+  max-width: 100% !important;
+}
+
 .brand-wrapper {
   display: flex;
   align-items: center;
