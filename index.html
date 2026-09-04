@@ -239,8 +239,94 @@
 
           <div class="builder-tab-content">
             
-            <!-- TAB 1: IDENTITY & THEME -->
-            <div id="tab_identity" class="tab-pane active">
+            <!-- TAB 1: PRODUCTS & MENU (PRIMARY) -->
+            <div id="tab_products" class="tab-pane active">
+              <div class="products-mgmt-header" style="background: rgba(79, 70, 229, 0.1); border: 1px solid rgba(99, 102, 241, 0.25); padding: 1.1rem; border-radius: 14px; margin-bottom: 1.25rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+                <div>
+                  <h4 style="font-size: 1.15rem; font-weight: 800; color: #FFFFFF; display: flex; align-items: center; gap: 0.5rem;">
+                    <span>📦</span> បញ្ជីមុខទំនិញ & Menu ហាង
+                  </h4>
+                  <span style="font-size: 0.8rem; color: var(--text-secondary);">គ្រប់គ្រងទំនិញ រូបភាព តម្លៃ និងជម្រើស Option/Topping</span>
+                </div>
+                <button class="btn btn-primary" onclick="window.storeBuilder.openAddProductModal()" style="font-weight: 800; padding: 0.65rem 1.25rem; font-size: 0.92rem; box-shadow: 0 4px 15px rgba(79, 70, 229, 0.45); display: inline-flex; align-items: center; gap: 0.5rem;">
+                  <span>➕</span> បន្ថែមទំនិញថ្មី (Add Product)
+                </button>
+              </div>
+
+              <!-- Products Cards Grid / Table -->
+              <div class="products-table-wrapper">
+                <table class="products-table">
+                  <thead>
+                    <tr>
+                      <th>ទំនិញ & រូបភាព</th>
+                      <th>តម្លៃ ($)</th>
+                      <th>ប្រភេទ</th>
+                      <th style="text-align: right;">សកម្មភាព</th>
+                    </tr>
+                  </thead>
+                  <tbody id="builderProductsTableBody">
+                    <!-- Injected by builder.js -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- TAB 2: PAYMENT CONFIG (ABA Bank & Bakong KHQR) -->
+            <div id="tab_payment" class="tab-pane">
+              <div style="background: rgba(15, 118, 110, 0.15); border: 1px solid rgba(20, 184, 166, 0.35); border-radius: 14px; padding: 1rem; margin-bottom: 1.25rem;">
+                <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.35rem;">
+                  <span style="font-size: 1.3rem;">💳</span>
+                  <strong style="color: #FFFFFF; font-size: 0.95rem;">កំណត់គណនី ABA Bank & Bakong KHQR</strong>
+                </div>
+                <p style="font-size: 0.8rem; color: #94A3B8; margin: 0;">
+                  បញ្ចូលព័ត៌មានគណនី ABA របស់អ្នក និង Upload រូបភាព ABA QR Code ដើម្បីឱ្យអតិថិជនស្កេនទូទាត់ និងផ្ញើបង្កាន់ដៃបង់ប្រាក់បានភ្លាមៗ!
+                </p>
+              </div>
+
+              <!-- Upload Merchant's ABA QR / KHQR Standalone Photo -->
+              <div class="form-group">
+                <label class="form-label">📸 រូបភាព ABA QR / Bakong KHQR ផ្ទាល់ខ្លួន (Upload ABA QR Photo):</label>
+                <div class="image-uploader-card" onclick="document.getElementById('fileStoreKhqrQr').click()" style="display: flex; align-items: center; gap: 1rem; background: var(--bg-card); border: 1.5px dashed var(--border-color); padding: 0.85rem 1rem; border-radius: 12px; cursor: pointer; transition: all 0.2s;">
+                  <img id="previewStoreKhqrQr" src="" alt="ABA QR Preview" style="width: 64px; height: 64px; border-radius: 10px; object-fit: cover; border: 1px solid rgba(255,255,255,0.15); background: white;" onerror="this.onerror=null; this.src='https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=KHQR_ABA'">
+                  <div style="flex: 1;">
+                    <div class="btn btn-secondary btn-sm" style="pointer-events: none; padding: 0.35rem 0.75rem; font-size: 0.8rem;">📁 ជ្រើសរើសរូប ABA QR (Upload Image)</div>
+                    <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.3rem;">Screenshot ឬរក្សាទុករូបភាព QR ពី ABA Mobile App របស់អ្នក</div>
+                  </div>
+                  <input type="file" id="fileStoreKhqrQr" accept="image/*" style="display: none;" onchange="window.storeBuilder.handleImageUpload(event, 'khqrQr')">
+                </div>
+                <input type="hidden" id="inputStoreKhqrQr">
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">ឈ្មោះម្ចាស់គណនី ABA / ឈ្មោះហាង (Account Name):</label>
+                <input type="text" id="inputKhqrMerchantName" class="form-input" placeholder="ឧ. CHAN SOKHA ឬ KOI CAFE" oninput="window.storeBuilder.handleInputChange()">
+              </div>
+
+              <div class="grid-2">
+                <div class="form-group">
+                  <label class="form-label">លេខគណនីធនាគារ ABA (Account Number):</label>
+                  <input type="text" id="inputKhqrAccount" class="form-input" placeholder="ឧ. 001 234 567" oninput="window.storeBuilder.handleInputChange()">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Bakong Account ID (ឧ. store@aba):</label>
+                  <input type="text" id="inputKhqrBakongId" class="form-input" placeholder="ឧ. store@aba" oninput="window.storeBuilder.handleInputChange()">
+                </div>
+              </div>
+
+              <div style="background: var(--bg-card); padding: 1rem; border-radius: 12px; margin-top: 1rem;">
+                <label style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; cursor: pointer;">
+                  <span>បើកទទួលទូទាត់តាម ABA / Bakong KHQR (QR Code)</span>
+                  <input type="checkbox" id="inputEnableKhqr" checked onchange="window.storeBuilder.handleInputChange()">
+                </label>
+                <label style="display: flex; align-items: center; justify-content: space-between; cursor: pointer;">
+                  <span>បើកទទួលទូទាត់សាច់ប្រាក់ផ្ទាល់ (Cash on Delivery)</span>
+                  <input type="checkbox" id="inputEnableCod" checked onchange="window.storeBuilder.handleInputChange()">
+                </label>
+              </div>
+            </div>
+
+            <!-- TAB 3: IDENTITY & THEME -->
+            <div id="tab_identity" class="tab-pane">
               
               <div class="form-group">
                 <label class="form-label" data-i18n="presetThemes">ជ្រើសរើស Theme ស្អាតៗរៀបចំស្រាប់ (Preset Themes):</label>
@@ -391,7 +477,7 @@
 
             </div>
 
-            <!-- TAB 2: BLOCKS -->
+            <!-- TAB 4: BLOCKS -->
             <div id="tab_blocks" class="tab-pane">
               <!-- Helper Banner for adding products -->
               <div style="background: rgba(79, 70, 229, 0.12); border: 1px solid rgba(99, 102, 241, 0.3); border-radius: 12px; padding: 0.85rem 1rem; margin-bottom: 1rem; display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap;">
@@ -408,115 +494,6 @@
               </div>
               <div id="builderBlocksList" class="block-list">
                 <!-- Injected by builder.js -->
-              </div>
-            </div>
-
-            <!-- TAB 3: PRODUCTS & MENU -->
-            <div id="tab_products" class="tab-pane">
-              <div class="products-mgmt-header" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); padding: 1rem; border-radius: 14px; margin-bottom: 1.25rem;">
-                <div>
-                  <h4 style="font-size: 1.1rem; font-weight: 800; color: #FFFFFF;">📦 បញ្ជីមុខទំនិញ & Menu ហាង</h4>
-                  <span style="font-size: 0.78rem; color: var(--text-muted);">គ្រប់គ្រងទំនិញ រូបភាព តម្លៃ និងជម្រើស Option/Topping</span>
-                </div>
-                <button class="btn btn-primary" onclick="window.storeBuilder.openAddProductModal()" style="font-weight: 800; padding: 0.65rem 1.15rem; font-size: 0.9rem; box-shadow: 0 4px 15px rgba(79, 70, 229, 0.4);">
-                  + បន្ថែមទំនិញថ្មី (Add Product)
-                </button>
-              </div>
-
-              <div class="products-table-wrapper">
-                <table class="products-table">
-                  <thead>
-                    <tr>
-                      <th>ទំនិញ</th>
-                      <th>តម្លៃ</th>
-                      <th>ប្រភេទ</th>
-                      <th>សកម្មភាព</th>
-                    </tr>
-                  </thead>
-                  <tbody id="builderProductsTableBody">
-                    <!-- Injected by builder.js -->
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <!-- TAB 4: PAYMENT CONFIG (ABA Bank & Bakong KHQR) -->
-            <div id="tab_payment" class="tab-pane">
-              <div style="background: rgba(15, 118, 110, 0.15); border: 1px solid rgba(20, 184, 166, 0.35); border-radius: 14px; padding: 1rem; margin-bottom: 1.25rem;">
-                <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.35rem;">
-                  <span style="font-size: 1.3rem;">💳</span>
-                  <strong style="color: #FFFFFF; font-size: 0.95rem;">កំណត់គណនី ABA Bank & Bakong KHQR</strong>
-                </div>
-                <p style="font-size: 0.8rem; color: #94A3B8; margin: 0;">
-                  បញ្ចូលព័ត៌មានគណនី ABA របស់អ្នក និង Upload រូបភាព ABA QR Code ដើម្បីឱ្យអតិថិជនស្កេនទូទាត់ និងផ្ញើបង្កាន់ដៃបង់ប្រាក់បានភ្លាមៗ!
-                </p>
-              </div>
-
-              <!-- Upload Merchant's ABA QR / KHQR Standalone Photo -->
-              <div class="form-group">
-                <label class="form-label">📸 រូបភាព ABA QR / Bakong KHQR ផ្ទាល់ខ្លួន (Upload ABA QR Photo):</label>
-                <div class="image-uploader-card" onclick="document.getElementById('fileStoreKhqrQr').click()" style="display: flex; align-items: center; gap: 1rem; background: var(--bg-card); border: 1.5px dashed var(--border-color); padding: 0.85rem 1rem; border-radius: 12px; cursor: pointer; transition: all 0.2s;">
-                  <img id="previewStoreKhqrQr" src="" alt="ABA QR Preview" style="width: 64px; height: 64px; border-radius: 10px; object-fit: cover; border: 1px solid rgba(255,255,255,0.15); background: white;" onerror="this.onerror=null; this.src='https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=KHQR_ABA'">
-                  <div style="flex: 1;">
-                    <div class="btn btn-secondary btn-sm" style="pointer-events: none; padding: 0.35rem 0.75rem; font-size: 0.8rem;">📁 ជ្រើសរើសរូប ABA QR (Upload Image)</div>
-                    <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.3rem;">Screenshot ឬរក្សាទុករូបភាព QR ពី ABA Mobile App របស់អ្នក</div>
-                  </div>
-                  <input type="file" id="fileStoreKhqrQr" accept="image/*" style="display: none;" onchange="window.storeBuilder.handleImageUpload(event, 'khqrQr')">
-                </div>
-                <input type="hidden" id="inputStoreKhqrQr">
-              </div>
-
-              <div class="form-group">
-                <label class="form-label">ឈ្មោះម្ចាស់គណនី ABA / ឈ្មោះហាង (Account Name):</label>
-                <input type="text" id="inputKhqrMerchantName" class="form-input" placeholder="ឧ. CHAN SOKHA ឬ KOI CAFE" oninput="window.storeBuilder.handleInputChange()">
-              </div>
-
-              <div class="grid-2">
-                <div class="form-group">
-                  <label class="form-label">លេខគណនីធនាគារ ABA (Account Number):</label>
-                  <input type="text" id="inputKhqrAccount" class="form-input" placeholder="ឧ. 001 234 567" oninput="window.storeBuilder.handleInputChange()">
-                </div>
-                <div class="form-group">
-                  <label class="form-label">Bakong Account ID (ឧ. store@aba):</label>
-                  <input type="text" id="inputKhqrBakongId" class="form-input" placeholder="ឧ. store@aba" oninput="window.storeBuilder.handleInputChange()">
-                </div>
-              </div>
-
-              <div style="background: var(--bg-card); padding: 1rem; border-radius: 12px; margin-top: 1rem;">
-                <label style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; cursor: pointer;">
-                  <span>បើកទទួលទូទាត់តាម ABA / Bakong KHQR (QR Code)</span>
-                  <input type="checkbox" id="inputEnableKhqr" checked onchange="window.storeBuilder.handleInputChange()">
-                </label>
-                <label style="display: flex; align-items: center; justify-content: space-between; cursor: pointer;">
-                  <span>បើកទទួលទូទាត់សាច់ប្រាក់ផ្ទាល់ (Cash on Delivery)</span>
-                  <input type="checkbox" id="inputEnableCod" checked onchange="window.storeBuilder.handleInputChange()">
-                </label>
-              </div>
-            </div>
-/label>
-                <input type="text" id="inputKhqrMerchantName" class="form-input" oninput="window.storeBuilder.handleInputChange()">
-              </div>
-
-              <div class="grid-2">
-                <div class="form-group">
-                  <label class="form-label">Bakong Account ID (ឧ. store@aba):</label>
-                  <input type="text" id="inputKhqrBakongId" class="form-input" oninput="window.storeBuilder.handleInputChange()">
-                </div>
-                <div class="form-group">
-                  <label class="form-label">លេខគណនីធនាគារ (Account Number):</label>
-                  <input type="text" id="inputKhqrAccount" class="form-input" oninput="window.storeBuilder.handleInputChange()">
-                </div>
-              </div>
-
-              <div style="background: var(--bg-card); padding: 1rem; border-radius: 12px; margin-top: 1rem;">
-                <label style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; cursor: pointer;">
-                  <span>បើកទទួលទូទាត់តាម Bakong KHQR (QR Code)</span>
-                  <input type="checkbox" id="inputEnableKhqr" checked onchange="window.storeBuilder.handleInputChange()">
-                </label>
-                <label style="display: flex; align-items: center; justify-content: space-between; cursor: pointer;">
-                  <span>បើកទទួលទូទាត់សាច់ប្រាក់ផ្ទាល់ (Cash on Delivery)</span>
-                  <input type="checkbox" id="inputEnableCod" checked onchange="window.storeBuilder.handleInputChange()">
-                </label>
               </div>
             </div>
 
@@ -572,6 +549,7 @@
 
           </div>
         </div>
+
 
         <!-- Right Column: Live Mobile Simulator -->
         <div class="simulator-container">

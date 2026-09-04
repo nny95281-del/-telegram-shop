@@ -5,11 +5,12 @@
 class StoreBuilder {
   constructor() {
     this.currentStoreId = null;
-    this.currentTab = "identity";
+    this.currentTab = "products";
     this.editingProductId = null;
     this.ordersFilter = "all";
     this.init();
   }
+
 
   init() {
     // Listen for store engine events
@@ -300,37 +301,52 @@ class StoreBuilder {
     if (!tbody) return;
 
     if (!store.products || store.products.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 2rem;">មិនទាន់មានមុខទំនិញនៅឡើយទេ។ ចុច "+ បន្ថែមទំនិញថ្មី" ដើម្បីបង្កើត!</td></tr>`;
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 3rem 1rem;">
+            <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🛍️</div>
+            <div style="font-size: 1rem; color: #FFFFFF; font-weight: 700; margin-bottom: 0.3rem;">មិនទាន់មានមុខទំនិញនៅឡើយទេ</div>
+            <p style="font-size: 0.8rem; color: #94A3B8; margin-bottom: 1rem;">សូមចុចប៊ូតុង "+ បន្ថែមទំនិញថ្មី" ខាងលើដើម្បីដាក់រូបភាព និងតម្លៃទំនិញរបស់អ្នក!</p>
+            <button class="btn btn-primary btn-sm" onclick="window.storeBuilder.openAddProductModal()">+ បន្ថែមទំនិញដំបូង</button>
+          </td>
+        </tr>
+      `;
       return;
     }
 
-    tbody.innerHTML = store.products.map(p => `
-      <tr>
-        <td>
-          <div style="display: flex; align-items: center; gap: 0.75rem;">
-            <img src="${p.image}" class="prod-table-thumb" alt="${p.name}">
-            <div>
-              <strong style="color: #FFFFFF; font-size: 0.88rem;">${p.nameKh || p.name}</strong>
-              <div style="font-size: 0.72rem; color: var(--text-muted);">${p.name}</div>
+    tbody.innerHTML = store.products.map(p => {
+      const priceKhr = Math.round(p.price * 4100);
+      return `
+        <tr>
+          <td>
+            <div style="display: flex; align-items: center; gap: 0.85rem;">
+              <img src="${p.image}" class="prod-table-thumb" alt="${p.name}" style="width: 50px; height: 50px; border-radius: 10px; object-fit: cover; border: 1px solid rgba(255,255,255,0.15); flex-shrink: 0;" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1541643600914-78b084683601?w=200&auto=format&fit=crop&q=80'">
+              <div style="min-width: 0;">
+                <strong style="color: #FFFFFF; font-size: 0.92rem; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${p.nameKh || p.name}</strong>
+                <div style="font-size: 0.75rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${p.name}</div>
+                ${p.badge ? `<span style="font-size: 0.65rem; font-weight: 800; background: #EF4444; color: white; padding: 0.1rem 0.4rem; border-radius: 4px; display: inline-block; margin-top: 0.2rem;">${p.badge}</span>` : ''}
+              </div>
             </div>
-          </div>
-        </td>
-        <td>
-          <span style="font-weight: 700; color: var(--accent-gold);">$${p.price.toFixed(2)}</span>
-          ${p.originalPrice ? `<div style="font-size: 0.72rem; text-decoration: line-through; color: var(--text-muted);">$${p.originalPrice.toFixed(2)}</div>` : ''}
-        </td>
-        <td>
-          <span class="badge-category">${p.categoryId}</span>
-        </td>
-        <td>
-          <div style="display: flex; gap: 0.4rem;">
-            <button class="btn btn-secondary btn-sm" onclick="window.storeBuilder.openEditProductModal('${p.id}')">✏️</button>
-            <button class="btn btn-danger btn-sm" onclick="window.storeBuilder.deleteProductPrompt('${p.id}')">🗑️</button>
-          </div>
-        </td>
-      </tr>
-    `).join('');
+          </td>
+          <td>
+            <div style="font-weight: 800; font-size: 0.95rem; color: var(--accent-gold);">$${p.price.toFixed(2)}</div>
+            <div style="font-size: 0.72rem; color: var(--text-muted);">${priceKhr.toLocaleString()} ៛</div>
+            ${p.originalPrice ? `<div style="font-size: 0.7rem; text-decoration: line-through; color: #EF4444;">$${p.originalPrice.toFixed(2)}</div>` : ''}
+          </td>
+          <td>
+            <span class="badge-category" style="font-size: 0.75rem; padding: 0.25rem 0.55rem; background: rgba(255,255,255,0.06); border-radius: 6px; color: #94A3B8;">${p.categoryId || 'General'}</span>
+          </td>
+          <td style="text-align: right;">
+            <div style="display: flex; gap: 0.4rem; justify-content: flex-end;">
+              <button class="btn btn-secondary btn-sm" onclick="window.storeBuilder.openEditProductModal('${p.id}')" title="កែសម្រួល" style="padding: 0.35rem 0.6rem; font-size: 0.8rem;">✏️ កែប្រែ</button>
+              <button class="btn btn-danger btn-sm" onclick="window.storeBuilder.deleteProductPrompt('${p.id}')" title="លុប" style="padding: 0.35rem 0.5rem; font-size: 0.8rem;">🗑️</button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
   }
+
 
   handleImageUpload(event, targetType) {
     const file = event.target?.files?.[0];
