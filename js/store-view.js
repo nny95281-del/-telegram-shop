@@ -251,6 +251,7 @@ class StoreView {
     const product = this.currentStore.products.find(p => p.id === productId);
     if (!product) return;
 
+    this.currentDetailProductId = productId;
     if (window.telegramTma) window.telegramTma.hapticImpact("light");
 
     const modal = document.getElementById("storeProductDetailModal");
@@ -272,26 +273,44 @@ class StoreView {
       product.options.forEach((optGroup, gIdx) => {
         const groupEl = document.createElement("div");
         groupEl.className = "option-group";
+        groupEl.style.cssText = "margin-bottom: 1rem; background: rgba(255,255,255,0.03); padding: 0.75rem; border-radius: 12px; border: 1px solid rgba(255,255,255,0.06);";
+        
+        const isMultiple = optGroup.type === 'checkbox' || optGroup.type === 'multiple';
+        
         groupEl.innerHTML = `
-          <div class="option-group-title">
+          <div class="option-group-title" style="display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 700; color: #FFFFFF; margin-bottom: 0.5rem;">
             <span>${optGroup.name}</span>
-            ${optGroup.required ? `<span style="color: #EF4444; font-size: 0.75rem;">Required</span>` : ''}
+            ${optGroup.required ? `<span style="color: #EF4444; font-size: 0.72rem; font-weight: normal;">* ចាំបាច់ (Required)</span>` : ''}
           </div>
-          ${optGroup.choices.map((choice, cIdx) => `
-            <label class="option-choice-row">
-              <input type="${optGroup.type === 'multiple' ? 'checkbox' : 'radio'}" name="opt_group_${gIdx}" value="${choice.name}" data-price="${choice.price || 0}" ${cIdx === 0 && optGroup.required ? 'checked' : ''}>
-              <span>${choice.name}</span>
-              ${choice.price ? `<span style="color: var(--accent-gold); font-size: 0.8rem;">+$${choice.price.toFixed(2)}</span>` : ''}
-            </label>
-          `).join('')}
+          <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+            ${optGroup.choices.map((choice, cIdx) => {
+              const label = choice.label || choice.name || `Option ${cIdx + 1}`;
+              const priceMod = parseFloat(choice.priceModifier !== undefined ? choice.priceModifier : choice.price) || 0;
+              const isChecked = (cIdx === 0 && optGroup.required && !isMultiple);
+
+              return `
+                <label style="display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 0.65rem; background: rgba(255,255,255,0.04); border-radius: 8px; cursor: pointer; font-size: 0.85rem;">
+                  <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <input type="${isMultiple ? 'checkbox' : 'radio'}" name="opt_group_${gIdx}" value="${label}" data-price="${priceMod}" ${isChecked ? 'checked' : ''} onchange="window.storeView.recalculateDetailModalPrice(${product.price})">
+                    <span style="color: #E2E8F0;">${label}</span>
+                  </div>
+                  ${priceMod > 0 ? `<span style="color: #F59E0B; font-weight: 700; font-size: 0.8rem;">+$${priceMod.toFixed(2)}</span>` : ''}
+                </label>
+              `;
+            }).join('')}
+          </div>
         `;
         optionsContainer.appendChild(groupEl);
       });
     }
 
-    document.getElementById("detailModalQty").textContent = "1";
+    const qtyEl = document.getElementById("detailModalQty");
+    if (qtyEl) qtyEl.textContent = "1";
+
+    this.recalculateDetailModalPrice(product.price);
+
     document.getElementById("detailModalAddBtn").onclick = () => {
-      const qty = parseInt(document.getElementById("detailModalQty").textContent) || 1;
+      const currentQty = parseInt(document.getElementById("detailModalQty")?.textContent) || 1;
       const selectedOptions = [];
       let extraPrice = 0;
 
@@ -300,19 +319,45 @@ class StoreView {
         extraPrice += parseFloat(input.dataset.price) || 0;
       });
 
-      this.addToCart(product, qty, selectedOptions, product.price + extraPrice);
+      this.addToCart(product, currentQty, selectedOptions, product.price + extraPrice);
       modal.classList.remove("active");
     };
 
     modal.classList.add("active");
   }
 
+  recalculateDetailModalPrice(basePrice) {
+    const optionsContainer = document.getElementById("detailModalOptions");
+    const qtyEl = document.getElementById("detailModalQty");
+    const priceEl = document.getElementById("detailModalPrice");
+    if (!priceEl) return;
+
+    let extraPrice = 0;
+    if (optionsContainer) {
+      optionsContainer.querySelectorAll("input:checked").forEach(input => {
+        extraPrice += parseFloat(input.dataset.price) || 0;
+      });
+    }
+
+    const qty = parseInt(qtyEl?.textContent) || 1;
+    const unitPrice = basePrice + extraPrice;
+    const total = unitPrice * qty;
+    const totalKhr = Math.round(total * 4100);
+
+    priceEl.innerHTML = `$${total.toFixed(2)} <span style="font-size: 0.75rem; color: #94A3B8; font-weight: normal;">(${totalKhr.toLocaleString()} ៛)</span>`;
+  }
+
   updateDetailModalQty(change) {
     if (window.telegramTma) window.telegramTma.hapticImpact("light");
     const qtyEl = document.getElementById("detailModalQty");
+    if (!qtyEl) return;
+
     let qty = parseInt(qtyEl.textContent) || 1;
     qty = Math.max(1, qty + change);
     qtyEl.textContent = qty;
+
+    const basePrice = this.currentStore?.products?.find(p => p.id === this.currentDetailProductId)?.price || 0;
+    this.recalculateDetailModalPrice(basePrice);
   }
 
   addToCart(product, qty, selectedOptions, unitPrice) {
@@ -538,7 +583,56 @@ class StoreView {
   }
 
   openCustomerOrdersModal() {
-    window.app.switchView("orders");
+    if (window.telegramTma) window.telegramTma.hapticImpact("light");
+    
+    const modal = document.getElementById("storeCustomerOrdersModal");
+    const container = document.getElementById("customerModalOrdersList");
+    if (!modal || !container) return;
+
+    const allOrders = window.storeEngine.getAllOrders();
+    const storeOrders = this.currentStore 
+      ? allOrders.filter(o => o.storeId === this.currentStore.id)
+      : allOrders;
+
+    if (storeOrders.length === 0) {
+      container.innerHTML = `
+        <div style="text-align: center; color: var(--text-muted); padding: 3rem 1rem;">
+          <div style="font-size: 3rem; margin-bottom: 0.75rem;">📦</div>
+          <h4 style="font-size: 1.1rem; color: #FFFFFF; font-weight: 700; margin-bottom: 0.3rem;">មិនទាន់មានការកុម្ម៉ង់នៅឡើយទេ</h4>
+          <p style="font-size: 0.85rem; color: #94A3B8;">ជ្រើសរើសទំនិញដាក់កន្ត្រក និងធ្វើការកុម្ម៉ង់ដើម្បីតាមដានទីនេះ!</p>
+        </div>
+      `;
+    } else {
+      container.innerHTML = storeOrders.map(ord => `
+        <div class="store-card" style="margin-bottom: 1rem; padding: 1rem; border-radius: 14px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);">
+          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 0.5rem; margin-bottom: 0.5rem;">
+            <div>
+              <strong style="color: #FFFFFF; font-size: 0.95rem;">Order #${ord.id}</strong>
+              <div style="font-size: 0.75rem; color: var(--text-muted);">${new Date(ord.createdAt).toLocaleTimeString()} (${new Date(ord.createdAt).toLocaleDateString()})</div>
+            </div>
+            <span style="font-size: 0.78rem; font-weight: 700; background: ${ord.status === 'COMPLETED' ? 'rgba(16,185,129,0.2)' : 'rgba(99,102,241,0.2)'}; color: ${ord.status === 'COMPLETED' ? '#10B981' : '#A5B4FC'}; padding: 0.25rem 0.6rem; border-radius: 99px;">
+              ${ord.status}
+            </span>
+          </div>
+
+          <div style="margin-bottom: 0.5rem;">
+            ${ord.items.map(i => `
+              <div style="display: flex; justify-content: space-between; font-size: 0.82rem; color: #CBD5E1; margin-bottom: 0.2rem;">
+                <span>${i.qty}x ${i.name}</span>
+                <span style="color: #FFFFFF; font-weight: 600;">$${i.lineTotal.toFixed(2)}</span>
+              </div>
+            `).join('')}
+          </div>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 0.5rem; font-size: 0.82rem;">
+            <span style="color: var(--text-muted);">ទូទាត់: <strong style="color: ${ord.paymentStatus === 'PAID' ? '#10B981' : '#F59E0B'}">${ord.paymentMethod}</strong></span>
+            <span style="font-size: 1.05rem; font-weight: 800; color: #F59E0B;">$${ord.total.toFixed(2)}</span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    modal.classList.add("active");
   }
 }
 

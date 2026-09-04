@@ -635,12 +635,32 @@
           <!-- Options dynamically rendered by store-view.js -->
         </div>
       </div>
-      <div class="modal-footer" style="justify-content: space-between;">
-        <div>
-          <span style="font-size: 0.75rem; color: var(--text-muted); display: block;">Total Price</span>
-          <span id="detailModalPrice" style="font-size: 1.25rem; font-weight: 800; color: var(--accent-gold);">$0.00</span>
+      <div class="modal-footer" style="display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;">
+        <div style="display: flex; align-items: center; gap: 0.5rem; background: rgba(255,255,255,0.06); padding: 0.25rem 0.5rem; border-radius: 8px;">
+          <button class="btn btn-secondary btn-sm" style="width: 30px; height: 30px; padding: 0; font-size: 1.1rem; border-radius: 6px;" onclick="window.storeView.updateDetailModalQty(-1)">-</button>
+          <span id="detailModalQty" style="font-weight: 800; width: 24px; text-align: center; color: #FFFFFF;">1</span>
+          <button class="btn btn-secondary btn-sm" style="width: 30px; height: 30px; padding: 0; font-size: 1.1rem; border-radius: 6px;" onclick="window.storeView.updateDetailModalQty(1)">+</button>
         </div>
-        <button id="detailModalAddBtn" class="btn btn-primary">🛒 ដាក់ក្នុងកន្ត្រក</button>
+        <div style="text-align: right; flex: 1;">
+          <span id="detailModalPrice" style="font-size: 1.25rem; font-weight: 800; color: #F59E0B; display: block;">$0.00</span>
+        </div>
+        <button id="detailModalAddBtn" class="btn btn-primary" style="padding: 0.65rem 1.25rem;">🛒 ដាក់ក្នុងកន្ត្រក</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 8: Customer In-Store Orders Modal -->
+  <div id="storeCustomerOrdersModal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>📦 ការកុម្ម៉ង់របស់អ្នក (My Orders)</h3>
+        <button class="modal-close-btn" onclick="document.getElementById('storeCustomerOrdersModal').classList.remove('active')">✕</button>
+      </div>
+      <div class="modal-body" id="customerModalOrdersList">
+        <!-- Injected by store-view.js -->
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary btn-block" onclick="document.getElementById('storeCustomerOrdersModal').classList.remove('active')">បិទ</button>
       </div>
     </div>
   </div>

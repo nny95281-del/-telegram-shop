@@ -417,6 +417,10 @@ class StoreBuilder {
     this.updateSimulator(store);
   }
 
+  saveProductModal() {
+    this.saveProductForm();
+  }
+
   deleteProductPrompt(productId) {
     const store = this.getCurrentStore();
     if (!store) return;

@@ -404,21 +404,21 @@
 /* Floating Bottom Cart Bar */
 .runtime-cart-bar {
   position: fixed;
-  bottom: 20px;
+  bottom: max(16px, env(safe-area-inset-bottom, 16px));
   left: 50%;
   transform: translateX(-50%);
-  width: calc(100% - 32px);
+  width: calc(100% - 28px);
   max-width: 480px;
   background: linear-gradient(135deg, #0F766E 0%, #14B8A6 100%);
   color: #FFFFFF;
-  padding: 0.85rem 1.25rem;
+  padding: 0.9rem 1.35rem;
   border-radius: 99px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   cursor: pointer;
-  box-shadow: 0 10px 30px rgba(20, 184, 166, 0.4), 0 0 1px 1px rgba(255,255,255,0.2) inset;
-  z-index: 99;
+  box-shadow: 0 12px 35px rgba(20, 184, 166, 0.5), 0 0 1px 1px rgba(255,255,255,0.25) inset;
+  z-index: 1500;
   animation: slideUpFloat 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
