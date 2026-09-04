@@ -178,18 +178,29 @@ class StoreView {
     const pDesc = (lang === 'km' && product.descriptionKh) ? product.descriptionKh : product.description;
     const priceKhr = Math.round(product.price * 4100);
 
+    let discountBadge = "";
+    if (product.originalPrice && product.originalPrice > product.price) {
+      const discountPercent = Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100);
+      discountBadge = `<span class="runtime-product-badge" style="background: #EF4444; color: #FFFFFF;">-${discountPercent}%</span>`;
+    } else if (product.badge) {
+      discountBadge = `<span class="runtime-product-badge">${product.badge}</span>`;
+    }
+
     return `
       <div class="runtime-product-card" onclick="window.storeView.openProductDetailModal('${product.id}')">
         <div class="runtime-product-img-wrap">
           <img src="${product.image}" class="runtime-product-img" alt="${pName}" loading="lazy" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1541643600914-78b084683601?w=600&auto=format&fit=crop&q=80'">
-          ${product.badge ? `<span class="runtime-product-badge">${product.badge}</span>` : ''}
+          ${discountBadge}
         </div>
         <div class="runtime-product-body">
           <div class="runtime-product-name" title="${pName}">${pName}</div>
           <div class="runtime-product-desc">${pDesc || ''}</div>
           <div class="runtime-product-footer">
             <div class="runtime-price-group">
-              <span class="runtime-price-main">$${product.price.toFixed(2)}</span>
+              <div style="display: flex; align-items: baseline; gap: 0.35rem;">
+                <span class="runtime-price-main">$${product.price.toFixed(2)}</span>
+                ${product.originalPrice ? `<span style="font-size: 0.72rem; text-decoration: line-through; color: #94A3B8; font-weight: 500;">$${product.originalPrice.toFixed(2)}</span>` : ''}
+              </div>
               <span class="runtime-price-khr">${priceKhr.toLocaleString()} ៛</span>
             </div>
             <button class="runtime-add-btn" onclick="event.stopPropagation(); window.storeView.quickAddToCart('${product.id}')" title="Add to Cart">+</button>
