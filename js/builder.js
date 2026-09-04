@@ -178,6 +178,7 @@ class StoreBuilder {
     this.renderStoreOrders(store);
     this.renderShareTab(store);
     this.updateSimulator(store);
+    this.switchTab(this.currentTab || "products");
   }
 
   handleInputChange() {
