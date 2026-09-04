@@ -313,13 +313,13 @@ body.in-store-view .main-content {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.75);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: rgba(0, 0, 0, 0.78);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 5000;
   padding: 1rem;
   opacity: 0;
   pointer-events: none;
@@ -331,18 +331,27 @@ body.in-store-view .main-content {
   pointer-events: auto;
 }
 
+/* Auto-hide floating cart bar whenever any modal is open */
+.modal-overlay.active ~ * .runtime-cart-bar,
+body:has(.modal-overlay.active) .runtime-cart-bar,
+body.modal-active .runtime-cart-bar {
+  display: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
 .modal-card {
   background: var(--bg-surface);
-  border: 1px solid var(--border-color);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: var(--radius-lg);
   width: 100%;
-  max-width: 540px;
-  max-height: 90vh;
+  max-width: 480px;
+  max-height: 85vh;
   display: flex;
   flex-direction: column;
-  box-shadow: var(--shadow-lg);
-  transform: scale(0.94) translateY(10px);
-  transition: transform var(--transition-smooth);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+  transform: scale(0.95) translateY(15px);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   overflow: hidden;
 }
 
