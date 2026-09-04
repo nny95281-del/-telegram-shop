@@ -1,6 +1,6 @@
 /**
  * OmniMini Full-Stack Server
- * Express Web App Server + Telegram Bot Service (Long-Polling & WebApp Integrations)
+ * Express Web App Server + Telegram Bot (Webhook & Polling Dual-Mode for 100% Uptime)
  */
 
 require('dotenv').config();
@@ -111,6 +111,25 @@ app.post('/api/send-order-alert', async (req, res) => {
   }
 });
 
+// Process Telegram Updates (Handles /start, /start store_slug, /shop, /app)
+async function handleTelegramMessage(message) {
+  if (!message || !message.text) return;
+
+  const chatId = message.chat.id;
+  const text = message.text.trim();
+  const firstName = message.from?.first_name || '';
+
+  console.log(`[Telegram Message] Chat: ${chatId} (${firstName}) -> "${text}"`);
+
+  if (text.startsWith('/start')) {
+    const parts = text.split(' ');
+    const startParam = parts.length > 1 ? parts[1].trim() : '';
+    await sendWelcomeMessage(chatId, firstName, startParam);
+  } else if (text.startsWith('/app') || text.startsWith('/shop')) {
+    await sendWelcomeMessage(chatId, firstName, '');
+  }
+}
+
 // Send Welcome Message with Inline WebApp Button
 async function sendWelcomeMessage(chatId, firstName, startParam = '') {
   const storeUrl = startParam ? `${WEB_APP_URL}/#store=${startParam}` : WEB_APP_URL;
@@ -157,42 +176,32 @@ async function sendWelcomeMessage(chatId, firstName, startParam = '') {
   });
 }
 
-// Telegram Bot Long Polling
+// Telegram Webhook Handler (Wakes up Render immediately upon user message!)
+app.post('/api/telegram-webhook', (req, res) => {
+  const update = req.body;
+  if (update && update.message) {
+    handleTelegramMessage(update.message);
+  }
+  res.sendStatus(200);
+});
+
+// Setup Webhook or Long-Polling
 let offset = 0;
-let isPolling = false;
 
 async function pollBot() {
-  if (!BOT_TOKEN) {
-    console.log('⚠️ BOT_TOKEN not configured. Skipping Bot Polling.');
-    return;
-  }
-
-  isPolling = true;
+  if (!BOT_TOKEN) return;
 
   try {
     const res = await telegramRequest('getUpdates', {
       offset: offset,
-      timeout: 25
+      timeout: 20
     });
 
     if (res && res.ok && Array.isArray(res.result) && res.result.length > 0) {
       for (const update of res.result) {
         offset = update.update_id + 1;
-
-        if (update.message && update.message.text) {
-          const chatId = update.message.chat.id;
-          const text = update.message.text.trim();
-          const firstName = update.message.from?.first_name || '';
-
-          console.log(`[Telegram Update] Chat: ${chatId} (${firstName}) -> "${text}"`);
-
-          if (text.startsWith('/start')) {
-            const parts = text.split(' ');
-            const startParam = parts.length > 1 ? parts[1] : '';
-            await sendWelcomeMessage(chatId, firstName, startParam);
-          } else if (text.startsWith('/app') || text.startsWith('/shop')) {
-            await sendWelcomeMessage(chatId, firstName, '');
-          }
+        if (update.message) {
+          await handleTelegramMessage(update.message);
         }
       }
     }
@@ -200,14 +209,15 @@ async function pollBot() {
     console.warn('[Bot Polling Error]:', err.message);
   }
 
-  // Next polling cycle
   setTimeout(pollBot, 1000);
 }
 
-// Setup Menu Button on Startup
-async function initBotMenuButton() {
+// Setup Menu Button & Webhook on Startup
+async function initBot() {
   if (!BOT_TOKEN) return;
+
   try {
+    // 1. Set Menu Button
     await telegramRequest('setChatMenuButton', {
       menu_button: {
         type: 'web_app',
@@ -218,8 +228,22 @@ async function initBotMenuButton() {
       }
     });
     console.log(`✅ Telegram Menu Button configured -> ${WEB_APP_URL}`);
+
+    // 2. Set Webhook if deployed on HTTPS (Render)
+    if (WEB_APP_URL && WEB_APP_URL.startsWith('https://')) {
+      const webhookUrl = `${WEB_APP_URL}/api/telegram-webhook`;
+      const webhookRes = await telegramRequest('setWebhook', {
+        url: webhookUrl,
+        drop_pending_updates: true
+      });
+      console.log(`✅ Telegram Webhook registered -> ${webhookUrl} (${JSON.stringify(webhookRes)})`);
+    } else {
+      // Local fallback
+      pollBot();
+    }
   } catch (e) {
-    console.warn('Could not set menu button:', e.message);
+    console.warn('Bot setup warning:', e.message);
+    pollBot();
   }
 }
 
@@ -228,10 +252,8 @@ app.listen(PORT, () => {
   console.log(`======================================================`);
   console.log(`🚀 OmniMini Server is running on port ${PORT}`);
   console.log(`🌐 Web App URL: ${WEB_APP_URL}`);
-  console.log(`🤖 Telegram Bot Polling: Starting...`);
+  console.log(`🤖 Telegram Webhook / Polling: Initializing...`);
   console.log(`======================================================`);
 
-  initBotMenuButton().then(() => {
-    pollBot();
-  });
+  initBot();
 });
