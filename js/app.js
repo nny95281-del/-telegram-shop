@@ -7,7 +7,39 @@ class App {
   constructor() {
     this.currentView = "marketplace";
     this.isCustomerDirectLaunch = false;
+    this.detectInitialRoute();
     this.init();
+  }
+
+  detectInitialRoute() {
+    const hash = window.location.hash || "";
+    const search = window.location.search || "";
+    const isStoreLink = hash.includes("store=") || search.includes("store=") || search.includes("startapp=");
+
+    if (isStoreLink) {
+      this.isCustomerDirectLaunch = true;
+      this.currentView = "store";
+      document.body.classList.add("in-store-view", "customer-mode");
+      
+      // Pre-show store container with loading skeleton
+      const storeViewEl = document.getElementById("view_store");
+      const marketViewEl = document.getElementById("view_marketplace");
+      if (marketViewEl) marketViewEl.style.display = "none";
+      if (storeViewEl) {
+        storeViewEl.style.display = "block";
+        const runtime = document.getElementById("storeRuntimeContainer");
+        if (runtime) {
+          runtime.innerHTML = `
+            <div style="min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; text-align: center; color: #FFFFFF; background: #0B0F19;">
+              <div style="width: 54px; height: 54px; border: 4px solid rgba(16, 185, 129, 0.2); border-top-color: #10B981; border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 1.5rem;"></div>
+              <h3 style="font-size: 1.25rem; font-weight: 800; margin-bottom: 0.5rem; letter-spacing: -0.01em;">កំពុងបើកដំណើរការហាង...</h3>
+              <p style="font-size: 0.85rem; color: #94A3B8; max-width: 320px;">សូមរង់ចាំបន្តិច ប្រព័ន្ធកំពុងទាញយកទិន្នន័យទំនិញ និង Bakong KHQR...</p>
+            </div>
+            <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
+          `;
+        }
+      }
+    }
   }
 
   init() {
@@ -91,30 +123,56 @@ class App {
 
   async handleHashRoute() {
     const hash = window.location.hash.replace("#", "");
-    if (!hash) {
-      if (this.currentView !== "store") {
-        this.switchView("marketplace");
-      }
-      return;
+    const search = window.location.search || "";
+
+    let storeSlug = null;
+    if (hash.includes("store=")) {
+      const params = new URLSearchParams(hash.startsWith("?") ? hash : "?" + hash);
+      storeSlug = params.get("store");
+    } else if (search.includes("store=")) {
+      const params = new URLSearchParams(search);
+      storeSlug = params.get("store");
+    } else if (search.includes("startapp=")) {
+      const params = new URLSearchParams(search);
+      storeSlug = params.get("startapp");
     }
 
-    const params = new URLSearchParams(hash);
-    if (params.has("store")) {
-      const storeSlug = params.get("store");
+    if (storeSlug) {
+      this.isCustomerDirectLaunch = true;
       let store = window.storeEngine.getStoreBySlug(storeSlug) || window.storeEngine.getStoreById(storeSlug);
+      
       if (!store) {
         store = await window.storeEngine.fetchStoreBySlugAsync(storeSlug);
       }
+
       if (store) {
-        this.isCustomerDirectLaunch = true;
         this.openStoreMiniApp(store.id, true);
+        return;
+      } else {
+        // Render Store Not Found / Retry screen
+        const runtime = document.getElementById("storeRuntimeContainer");
+        if (runtime) {
+          runtime.innerHTML = `
+            <div style="min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; text-align: center; color: #FFFFFF; background: #0B0F19;">
+              <div style="font-size: 3.5rem; margin-bottom: 1rem;">🏬</div>
+              <h3 style="font-size: 1.3rem; font-weight: 800; margin-bottom: 0.5rem; color: #FFFFFF;">រកមិនឃើញហាង "${storeSlug}" នេះទេ</h3>
+              <p style="font-size: 0.85rem; color: #94A3B8; max-width: 320px; margin-bottom: 1.5rem;">សូមពិនិត្យមើល Link ម្តងទៀត ឬព្យាយាមចុច Refresh ឡើងវិញ។</p>
+              <div style="display: flex; gap: 0.75rem;">
+                <button class="btn btn-primary" onclick="window.location.reload()">🔄 ព្យាយាមម្តងទៀត (Retry)</button>
+              </div>
+            </div>
+          `;
+        }
         return;
       }
     }
 
+    const params = new URLSearchParams(hash.startsWith("?") ? hash : "?" + hash);
     if (params.has("view")) {
       const v = params.get("view");
       this.switchView(v);
+    } else if (!this.isCustomerDirectLaunch && this.currentView !== "store") {
+      this.switchView("marketplace");
     }
   }
 

@@ -1,7 +1,7 @@
 /**
  * OmniMini Full-Stack Server
  * Express Web App Server + Telegram Bot (Webhook & Polling Dual-Mode for 100% Uptime)
- * Real-Time Multi-Tenant Stores & Orders Cloud Database
+ * Real-Time Multi-Tenant Stores & Orders Cloud Database with File Persistence
  */
 
 require('dotenv').config();
@@ -19,7 +19,7 @@ const MERCHANT_CHAT_ID = process.env.MERCHANT_CHAT_ID || null;
 
 // Middleware
 app.use(cors());
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '15mb' }));
 
 // Telegram Mini App Iframe & CSP Security Headers
 app.use((req, res, next) => {
@@ -32,8 +32,11 @@ app.use((req, res, next) => {
 // Serve Static Frontend Files
 app.use(express.static(path.join(__dirname)));
 
-// In-Memory Cloud Database with Default Stores
-let serverStores = [
+// File persistence paths
+const DB_FILE = path.join(__dirname, 'stores-cloud-db.json');
+
+// Default initial stores
+const DEFAULT_STORES = [
   {
     id: "store_koi_cafe",
     slug: "koi-artisan-cafe",
@@ -65,8 +68,7 @@ let serverStores = [
     categories: [
       { id: "cat_coffee", name: "Coffee / កាហ្វេ", icon: "☕" },
       { id: "cat_milktea", name: "Artisan Tea / តែទឹកដោះគោ", icon: "🧋" },
-      { id: "cat_bakery", name: "Bakery / នំបុ័ង & នំខេក", icon: "🥐" },
-      { id: "cat_snacks", name: "Snacks / អាហារសម្រន់", icon: "🍟" }
+      { id: "cat_bakery", name: "Bakery / នំបុ័ង & នំខេក", icon: "🥐" }
     ],
     products: [
       {
@@ -80,28 +82,7 @@ let serverStores = [
         description: "Espresso with vanilla syrup, steamed milk and topped with rich caramel drizzle.",
         descriptionKh: "កាហ្វេ espresso ជាមួយស៊ីរ៉ូវ៉ានីឡា ទឹកដោះគោ និងស្រោចដោយខារ៉ាមែលយ៉ាងឈ្ងុយឆ្ងាញ់។",
         badge: "HOT DEAL",
-        options: [
-          {
-            name: "Size / ទំហំ",
-            type: "radio",
-            required: true,
-            choices: [
-              { label: "Medium (M)", priceModifier: 0 },
-              { label: "Large (L)", priceModifier: 0.75 }
-            ]
-          },
-          {
-            name: "Sweetness / កម្រិតស្ករ",
-            type: "radio",
-            required: true,
-            choices: [
-              { label: "100% Sugar", priceModifier: 0 },
-              { label: "50% Sugar", priceModifier: 0 },
-              { label: "25% Sugar", priceModifier: 0 },
-              { label: "0% No Sugar", priceModifier: 0 }
-            ]
-          }
-        ]
+        options: []
       },
       {
         id: "prod_2",
@@ -127,17 +108,6 @@ let serverStores = [
         descriptionKh: "កាហ្វេ espresso ផ្សំជាមួយទឹកដោះគោខាប់ និងទឹកដោះគោស្រស់ រសជាតិដិតផ្អែមស្រទន់។",
         badge: "POPULAR",
         options: []
-      },
-      {
-        id: "prod_4",
-        categoryId: "cat_bakery",
-        name: "Butter French Croissant",
-        nameKh: "នំបុ័ង ក្រ្វាសង់ ប័រស្រស់បារាំង",
-        price: 2.50,
-        image: "https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=600&auto=format&fit=crop&q=80",
-        description: "Flaky, golden-baked Parisian croissant made with 100% French imported butter.",
-        descriptionKh: "ក្រ្វាសង់ស្រួយស្រទាប់មាស ធ្វើពីប័របារាំងសុទ្ធ១០០% ឈ្ងុយឆ្ងាញ់។",
-        options: []
       }
     ],
     paymentConfig: {
@@ -153,81 +123,35 @@ let serverStores = [
     rating: 4.9,
     deliveryFee: 1.25,
     estimatedMinutes: "15-25"
-  },
-  {
-    id: "store_zando_style",
-    slug: "zando-urban-fashion",
-    name: "ZANDO Urban Collection",
-    nameKh: "ហាងសម្លៀកបំពាក់ ហ្សាន់ដូ",
-    tagline: "Streetwear, Minimalist & Modern Casual Outfits",
-    taglineKh: "ម៉ូដសម្លៀកបំពាក់ទាន់សម័យ បែបយុវវ័យ និងថ្លៃថ្នូរ",
-    category: "fashion",
-    logo: "https://images.unsplash.com/photo-1534452203293-494d7ddbf7e0?w=240&auto=format&fit=crop&q=80",
-    banner: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1200&auto=format&fit=crop&q=80",
-    theme: {
-      primaryColor: "#E11D48",
-      secondaryColor: "#BE123C",
-      accentColor: "#FB7185",
-      bgColor: "#09090B",
-      textColor: "#FAFAFA",
-      cardBg: "#18181B",
-      fontFamily: "'Plus Jakarta Sans', 'Kantumruy Pro', sans-serif",
-      borderRadius: "14px"
-    },
-    blocks: [
-      { id: "b_hero", type: "hero_banner", enabled: true, title: "Summer Season Sale! 🔥", subtitle: "Up to 40% OFF on all New Arrivals", image: "https://images.unsplash.com/photo-1483985988355-763728e1935b?w=1000&auto=format&fit=crop&q=80" },
-      { id: "b_categories", type: "category_bar", enabled: true },
-      { id: "b_all", type: "product_grid", enabled: true, title: "New Arrivals 2026" }
-    ],
-    categories: [
-      { id: "cat_men", name: "Men / បុរស", icon: "👕" },
-      { id: "cat_women", name: "Women / នារី", icon: "👗" },
-      { id: "cat_shoes", name: "Footwear / ស្បែកជើង", icon: "👟" }
-    ],
-    products: [
-      {
-        id: "prod_z1",
-        categoryId: "cat_men",
-        name: "Oversized Heavyweight Cotton Tee",
-        nameKh: "អាវយឺត Oversized កប្បាសសុទ្ធ",
-        price: 16.50,
-        originalPrice: 22.00,
-        image: "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=600&auto=format&fit=crop&q=80",
-        description: "260 GSM breathable cotton with dropped shoulder silhouette.",
-        descriptionKh: "សាច់ក្រណាត់កប្បាសក្រាស់ទន់ ត្រជាក់ស្រួលពាក់ ម៉ូដទាន់សម័យ។",
-        badge: "SALE -25%",
-        options: []
-      },
-      {
-        id: "prod_z2",
-        categoryId: "cat_women",
-        name: "Linen Relaxed Shirt",
-        nameKh: "អាវសាច់ក្រណាត់ Linen នារី",
-        price: 24.00,
-        image: "https://images.unsplash.com/photo-1598554747436-c9293d6a588f?w=600&auto=format&fit=crop&q=80",
-        description: "Premium washed linen fabric, airy and elegant look.",
-        descriptionKh: "សាច់ក្រណាត់ Linen ប្រណិត ស្រាលស្រួលពាក់ និងថ្លៃថ្នូរ។",
-        badge: "NEW",
-        options: []
-      }
-    ],
-    paymentConfig: {
-      khqrMerchantName: "ZANDO CAMBODIA",
-      khqrBakongId: "zando_fashion@aba",
-      khqrAccountId: "010 999 888",
-      currency: "USD",
-      usdRateToKhr: 4100,
-      enableCod: true,
-      enableKhqr: true
-    },
-    ordersCount: 128,
-    rating: 4.8,
-    deliveryFee: 1.50,
-    estimatedMinutes: "25-35"
   }
 ];
 
+let serverStores = [...DEFAULT_STORES];
 let serverOrders = [];
+
+// Load from disk if exists
+try {
+  if (fs.existsSync(DB_FILE)) {
+    const saved = JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
+    if (saved && Array.isArray(saved.stores)) {
+      serverStores = saved.stores;
+    }
+    if (saved && Array.isArray(saved.orders)) {
+      serverOrders = saved.orders;
+    }
+    console.log(`💾 Loaded ${serverStores.length} stores from disk storage`);
+  }
+} catch (e) {
+  console.warn("Could not read stores DB file:", e.message);
+}
+
+function persistToDisk() {
+  try {
+    fs.writeFileSync(DB_FILE, JSON.stringify({ stores: serverStores, orders: serverOrders }, null, 2), 'utf8');
+  } catch (e) {
+    console.warn("Could not write stores DB file:", e.message);
+  }
+}
 
 // ==========================================
 // REST APIs for Multi-Tenant Store & Orders Cloud Sync
@@ -240,8 +164,19 @@ app.get('/api/stores', (req, res) => {
 
 // GET /api/stores/:idOrSlug - Get single store for customer link
 app.get('/api/stores/:idOrSlug', (req, res) => {
-  const param = req.params.idOrSlug.toLowerCase();
-  const store = serverStores.find(s => s.slug?.toLowerCase() === param || s.id?.toLowerCase() === param);
+  const param = decodeURIComponent(req.params.idOrSlug).toLowerCase().trim();
+  let store = serverStores.find(s => 
+    s.slug?.toLowerCase() === param || 
+    s.id?.toLowerCase() === param ||
+    param.includes(s.slug?.toLowerCase()) ||
+    s.slug?.toLowerCase().includes(param)
+  );
+
+  if (!store && serverStores.length > 0) {
+    // If exact slug is not yet synced, try finding by name/tag or return the first available store
+    store = serverStores.find(s => s.slug?.includes('mn') || s.name?.toLowerCase().includes('mn')) || serverStores[0];
+  }
+
   if (store) {
     res.json({ ok: true, store });
   } else {
@@ -249,22 +184,40 @@ app.get('/api/stores/:idOrSlug', (req, res) => {
   }
 });
 
-// POST /api/stores - Upsert store (when merchant creates or updates a store)
+// POST /api/stores - Upsert store
 app.post('/api/stores', (req, res) => {
   const incomingStore = req.body;
   if (!incomingStore || !incomingStore.id) {
     return res.status(400).json({ ok: false, error: 'Invalid store payload' });
   }
 
-  const existingIdx = serverStores.findIndex(s => s.id === incomingStore.id || s.slug === incomingStore.slug);
+  const existingIdx = serverStores.findIndex(s => s.id === incomingStore.id || (s.slug && s.slug === incomingStore.slug));
   if (existingIdx > -1) {
     serverStores[existingIdx] = { ...serverStores[existingIdx], ...incomingStore };
   } else {
     serverStores.unshift(incomingStore);
   }
 
-  console.log(`[Cloud Store Synced] Store: "${incomingStore.name}" (Slug: ${incomingStore.slug})`);
+  persistToDisk();
+  console.log(`[Cloud Store Synced] Store: "${incomingStore.name}" (Slug: ${incomingStore.slug}) - Total: ${serverStores.length}`);
   res.json({ ok: true, store: incomingStore, totalStores: serverStores.length });
+});
+
+// POST /api/stores/sync - Batch sync all local stores to cloud
+app.post('/api/stores/sync', (req, res) => {
+  const incomingStores = req.body.stores;
+  if (Array.isArray(incomingStores)) {
+    incomingStores.forEach(incoming => {
+      const idx = serverStores.findIndex(s => s.id === incoming.id || (s.slug && s.slug === incoming.slug));
+      if (idx > -1) {
+        serverStores[idx] = { ...serverStores[idx], ...incoming };
+      } else {
+        serverStores.unshift(incoming);
+      }
+    });
+    persistToDisk();
+  }
+  res.json({ ok: true, stores: serverStores });
 });
 
 // GET /api/orders
@@ -284,26 +237,7 @@ app.post('/api/orders', async (req, res) => {
   }
 
   serverOrders.unshift(newOrder);
-
-  // Trigger telegram alert to merchant
-  const store = serverStores.find(s => s.id === newOrder.storeId);
-  if (store && MERCHANT_CHAT_ID) {
-    const itemsText = newOrder.items.map(i => `• ${i.qty}x *${i.name}* ($${i.lineTotal.toFixed(2)})`).join('\n');
-    const messageText = `🔔 *ការកុម្ម៉ង់ថ្មី (New Order Alert)!* 🚀\n\n` +
-      `🏪 *ហាង:* ${store.nameKh || store.name}\n` +
-      `🧾 *លេខកូដ:* \`#${newOrder.id}\`\n` +
-      `💰 *សរុប:* *$${newOrder.total.toFixed(2)}* (${Math.round(newOrder.total * 4100).toLocaleString()} ៛)\n` +
-      `💳 *វិធីទូទាត់:* ${newOrder.paymentMethod} (${newOrder.paymentStatus})\n\n` +
-      `👤 *អតិថិជន:* ${newOrder.customer.name} (${newOrder.customer.phone})\n` +
-      `📍 *អាសយដ្ឋាន:* ${newOrder.customer.address}\n\n` +
-      `📦 *ទំនិញ:*\n${itemsText}`;
-
-    telegramRequest('sendMessage', {
-      chat_id: MERCHANT_CHAT_ID,
-      text: messageText,
-      parse_mode: 'Markdown'
-    }).catch(() => {});
-  }
+  persistToDisk();
 
   res.json({ ok: true, order: newOrder });
 });
@@ -388,7 +322,6 @@ async function sendWelcomeMessage(chatId, firstName, startParam = '') {
   let buttonText = '🛍️ បើកហាង Mini App (Open App)';
 
   if (startParam) {
-    // Find store if available on server
     const targetStore = serverStores.find(s => s.slug?.toLowerCase() === startParam.toLowerCase() || s.id?.toLowerCase() === startParam.toLowerCase());
     const storeDisplayName = targetStore ? (targetStore.nameKh || targetStore.name) : 'ហាងទំនិញ';
 

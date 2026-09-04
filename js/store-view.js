@@ -131,7 +131,7 @@ class StoreView {
         <!-- Top Customer Store Navbar -->
         <header class="store-navbar">
           <div class="store-nav-left">
-            ${!isSimulator ? `<button class="store-back-btn" onclick="window.app.switchView('marketplace')" title="Back to Marketplace">←</button>` : ''}
+            ${(!isSimulator && !window.app?.isCustomerDirectLaunch) ? `<button class="store-back-btn" onclick="window.app.switchView('marketplace')" title="Back to Marketplace">←</button>` : ''}
             <img src="${store.logo}" class="store-nav-logo" alt="${storeDisplayName}">
             <div class="store-nav-info">
               <h2>${storeDisplayName}</h2>

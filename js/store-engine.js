@@ -21,7 +21,7 @@ class StoreEngine {
     const rawStores = localStorage.getItem(this.STORAGE_KEY_STORES);
     if (!rawStores) {
       this.stores = JSON.parse(JSON.stringify(DEFAULT_STORES));
-      this.saveStores(false);
+      this.saveStores(true);
     } else {
       try {
         this.stores = JSON.parse(rawStores);
@@ -41,16 +41,25 @@ class StoreEngine {
       }
     }
 
-    // Sync stores from Cloud Server
-    this.syncFromCloudServer();
+    // Immediately sync with Cloud Server in background
+    this.syncWithCloudServer();
   }
 
-  async syncFromCloudServer() {
+  async syncWithCloudServer() {
     try {
+      // 1. Upload our local stores to cloud
+      if (this.stores.length > 0) {
+        await fetch('/api/stores/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ stores: this.stores })
+        });
+      }
+
+      // 2. Fetch all cloud stores from server
       const res = await fetch('/api/stores');
       const data = await res.json();
       if (data && data.ok && Array.isArray(data.stores)) {
-        // Merge cloud stores with local
         data.stores.forEach(cloudStore => {
           const idx = this.stores.findIndex(s => s.id === cloudStore.id || s.slug === cloudStore.slug);
           if (idx > -1) {
@@ -72,14 +81,11 @@ class StoreEngine {
     this.notify("stores_updated", this.stores);
 
     if (syncToCloud && this.stores.length > 0) {
-      // Sync active/latest store to cloud
-      this.stores.forEach(s => {
-        fetch('/api/stores', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(s)
-        }).catch(() => {});
-      });
+      fetch('/api/stores/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ stores: this.stores })
+      }).catch(() => {});
     }
   }
 
@@ -122,8 +128,13 @@ class StoreEngine {
 
   getStoreBySlug(slug) {
     if (!slug) return null;
-    const lower = slug.toLowerCase();
-    return this.stores.find(s => s.slug?.toLowerCase() === lower || s.id?.toLowerCase() === lower) || null;
+    const lower = slug.toLowerCase().trim();
+    return this.stores.find(s => 
+      s.slug?.toLowerCase() === lower || 
+      s.id?.toLowerCase() === lower ||
+      s.slug?.toLowerCase().includes(lower) ||
+      lower.includes(s.slug?.toLowerCase())
+    ) || null;
   }
 
   // Asynchronous cloud fetch for deep customer links
@@ -176,7 +187,7 @@ class StoreEngine {
         borderRadius: "16px"
       },
       blocks: [
-        { id: "b_hero", type: "hero_banner", enabled: true, title: "Special Opening Promo! 🎉", subtitle: "Welcome to our official Telegram store", image: "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=1000&auto=format&fit=crop&q=80" },
+        { id: "b_hero", type: "hero_banner", enabled: true, title: "Special Opening Promo! 🎉", subtitle: "Welcome to our official store", image: "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=1000&auto=format&fit=crop&q=80" },
         { id: "b_announce", type: "announcement", enabled: true, text: "🎉 សូមស្វាគមន៍មកកាន់ Mini App ហាងយើងខ្ញុំ!" },
         { id: "b_categories", type: "category_bar", enabled: true },
         { id: "b_all", type: "product_grid", enabled: true, title: "មុខទំនិញទាំងអស់ / All Products" },
