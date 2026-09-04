@@ -4,7 +4,7 @@
  * Real-Time Multi-Tenant Stores & Orders Cloud Database with File Persistence
  */
 
-require('dotenv').config();
+try { require('dotenv').config(); } catch (e) {}
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
