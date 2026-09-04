@@ -14,6 +14,29 @@
   <!-- Telegram WebApp SDK -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
+  <!-- Instant Customer Mode Pre-Launcher -->
+  <script>
+    (function() {
+      try {
+        var h = window.location.hash || '';
+        var s = window.location.search || '';
+        var p = window.location.pathname || '';
+        var tgParam = (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.start_param) || '';
+        if (h.indexOf('store=') > -1 || s.indexOf('store=') > -1 || s.indexOf('startapp=') > -1 || h.indexOf('tgWebAppStartParam') > -1 || s.indexOf('tgWebAppStartParam') > -1 || tgParam || p.indexOf('/store/') > -1 || p.indexOf('/s/') > -1) {
+          document.documentElement.className += ' customer-prelaunch in-store-view customer-mode';
+        }
+      } catch(e) {}
+    })();
+  </script>
+  <style>
+    html.customer-prelaunch .app-header { display: none !important; }
+    html.customer-prelaunch #view_marketplace { display: none !important; }
+    html.customer-prelaunch #view_builder { display: none !important; }
+    html.customer-prelaunch #view_orders { display: none !important; }
+    html.customer-prelaunch #view_store { display: block !important; }
+    html.customer-prelaunch .main-content { padding: 0 !important; max-width: 100% !important; }
+  </style>
+
   <!-- Stylesheets -->
   <link rel="stylesheet" href="styles/main.css">
   <link rel="stylesheet" href="styles/marketplace.css">
@@ -288,12 +311,29 @@
 
               <div class="grid-2">
                 <div class="form-group">
-                  <label class="form-label" data-i18n="logoUrlLabel">Logo Image URL:</label>
-                  <input type="text" id="inputStoreLogo" class="form-input" oninput="window.storeBuilder.handleInputChange()">
+                  <label class="form-label">🖼️ រូប Logo ហាង (Store Logo):</label>
+                  <div class="image-uploader-card" onclick="document.getElementById('fileStoreLogo').click()" style="display: flex; align-items: center; gap: 0.85rem; background: var(--bg-card); border: 1.5px dashed var(--border-color); padding: 0.75rem 1rem; border-radius: 12px; cursor: pointer;">
+                    <img id="previewStoreLogo" src="" alt="Logo Preview" style="width: 46px; height: 46px; border-radius: 10px; object-fit: cover; border: 1px solid rgba(255,255,255,0.15);" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=200&auto=format&fit=crop&q=80'">
+                    <div style="flex: 1;">
+                      <div class="btn btn-secondary btn-sm" style="pointer-events: none; padding: 0.35rem 0.75rem; font-size: 0.8rem;">📁 ជ្រើសរើសរូបភាព (Upload)</div>
+                      <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.25rem;">PNG, JPG, WebP ពីទូរស័ព្ទ</div>
+                    </div>
+                    <input type="file" id="fileStoreLogo" accept="image/*" style="display: none;" onchange="window.storeBuilder.handleImageUpload(event, 'logo')">
+                  </div>
+                  <input type="hidden" id="inputStoreLogo">
                 </div>
+
                 <div class="form-group">
-                  <label class="form-label" data-i18n="bannerUrlLabel">Banner Image URL:</label>
-                  <input type="text" id="inputStoreBanner" class="form-input" oninput="window.storeBuilder.handleInputChange()">
+                  <label class="form-label">🚩 រូប Banner ហាង (Store Banner):</label>
+                  <div class="image-uploader-card" onclick="document.getElementById('fileStoreBanner').click()" style="display: flex; align-items: center; gap: 0.85rem; background: var(--bg-card); border: 1.5px dashed var(--border-color); padding: 0.75rem 1rem; border-radius: 12px; cursor: pointer;">
+                    <img id="previewStoreBanner" src="" alt="Banner Preview" style="width: 70px; height: 46px; border-radius: 8px; object-fit: cover; border: 1px solid rgba(255,255,255,0.15);" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=1000&auto=format&fit=crop&q=80'">
+                    <div style="flex: 1;">
+                      <div class="btn btn-secondary btn-sm" style="pointer-events: none; padding: 0.35rem 0.75rem; font-size: 0.8rem;">📁 ជ្រើសរើសរូបភាព (Upload)</div>
+                      <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.25rem;">PNG, JPG, WebP ពីទូរស័ព្ទ</div>
+                    </div>
+                    <input type="file" id="fileStoreBanner" accept="image/*" style="display: none;" onchange="window.storeBuilder.handleImageUpload(event, 'banner')">
+                  </div>
+                  <input type="hidden" id="inputStoreBanner">
                 </div>
               </div>
 
@@ -601,8 +641,16 @@
         </div>
 
         <div class="form-group">
-          <label class="form-label">រូបភាពទំនិញ (Image URL):</label>
-          <input type="text" id="prodFormImage" class="form-input">
+          <label class="form-label">📸 រូបភាពទំនិញ (Product Photo):</label>
+          <div class="image-uploader-card" onclick="document.getElementById('fileProductImage').click()" style="display: flex; align-items: center; gap: 0.85rem; background: var(--bg-card); border: 1.5px dashed var(--border-color); padding: 0.75rem 1rem; border-radius: 12px; cursor: pointer;">
+            <img id="previewProductImage" src="" alt="Product Preview" style="width: 50px; height: 50px; border-radius: 10px; object-fit: cover; border: 1px solid rgba(255,255,255,0.15);" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1541643600914-78b084683601?w=200&auto=format&fit=crop&q=80'">
+            <div style="flex: 1;">
+              <div class="btn btn-secondary btn-sm" style="pointer-events: none; padding: 0.35rem 0.75rem; font-size: 0.8rem;">📁 ជ្រើសរើសរូបពីទូរស័ព្ទ (Upload Photo)</div>
+              <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.25rem;">រូបភាពទំនិញស្អាតៗពី Gallery ឬកាមេរ៉ា</div>
+            </div>
+            <input type="file" id="fileProductImage" accept="image/*" style="display: none;" onchange="window.storeBuilder.handleImageUpload(event, 'product')">
+          </div>
+          <input type="hidden" id="prodFormImage">
         </div>
 
         <div class="form-group">

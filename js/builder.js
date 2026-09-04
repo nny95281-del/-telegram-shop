@@ -113,6 +113,12 @@ class StoreBuilder {
     if (bannerEl) bannerEl.value = store.banner || "";
     if (catEl) catEl.value = store.category || "cafe";
 
+    const prevLogo = document.getElementById("previewStoreLogo");
+    if (prevLogo && store.logo) prevLogo.src = store.logo;
+
+    const prevBanner = document.getElementById("previewStoreBanner");
+    if (prevBanner && store.banner) prevBanner.src = store.banner;
+
     // 2. Fill Theme Colors
     const primaryEl = document.getElementById("inputPrimaryColor");
     const secondaryEl = document.getElementById("inputSecondaryColor");
@@ -317,6 +323,42 @@ class StoreBuilder {
     `).join('');
   }
 
+  handleImageUpload(event, targetType) {
+    const file = event.target?.files?.[0];
+    if (!file) return;
+
+    if (file.size > 8 * 1024 * 1024) {
+      window.app.showToast("រូបភាពធំពេក សូមជ្រើសរើសរូបក្រោម 8MB", "warning");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const base64Url = e.target.result;
+      if (targetType === 'logo') {
+        const inputLogo = document.getElementById('inputStoreLogo');
+        const prevLogo = document.getElementById('previewStoreLogo');
+        if (inputLogo) inputLogo.value = base64Url;
+        if (prevLogo) prevLogo.src = base64Url;
+        this.handleInputChange();
+      } else if (targetType === 'banner') {
+        const inputBanner = document.getElementById('inputStoreBanner');
+        const prevBanner = document.getElementById('previewStoreBanner');
+        if (inputBanner) inputBanner.value = base64Url;
+        if (prevBanner) prevBanner.src = base64Url;
+        this.handleInputChange();
+      } else if (targetType === 'product') {
+        const inputProd = document.getElementById('prodFormImage');
+        const prevProd = document.getElementById('previewProductImage');
+        if (inputProd) inputProd.value = base64Url;
+        if (prevProd) prevProd.src = base64Url;
+      }
+      if (window.telegramTma) window.telegramTma.hapticImpact('medium');
+      window.app.showToast('បាន Upload រូបភាពជោគជ័យ!', 'success');
+    };
+    reader.readAsDataURL(file);
+  }
+
   openAddProductModal() {
     this.editingProductId = null;
     const store = this.getCurrentStore();
@@ -327,10 +369,13 @@ class StoreBuilder {
     document.getElementById("prodFormNameKh").value = "";
     document.getElementById("prodFormPrice").value = "";
     document.getElementById("prodFormOrigPrice").value = "";
-    document.getElementById("prodFormImage").value = "";
+    document.getElementById("prodFormImage").value = "https://images.unsplash.com/photo-1541643600914-78b084683601?w=500&auto=format&fit=crop&q=80";
     document.getElementById("prodFormDesc").value = "";
     document.getElementById("prodFormDescKh").value = "";
     document.getElementById("prodFormBadge").value = "";
+
+    const prevProd = document.getElementById("previewProductImage");
+    if (prevProd) prevProd.src = "https://images.unsplash.com/photo-1541643600914-78b084683601?w=500&auto=format&fit=crop&q=80";
 
     // Categories dropdown
     const catSelect = document.getElementById("prodFormCategory");
@@ -360,6 +405,9 @@ class StoreBuilder {
     document.getElementById("prodFormDesc").value = prod.description || "";
     document.getElementById("prodFormDescKh").value = prod.descriptionKh || "";
     document.getElementById("prodFormBadge").value = prod.badge || "";
+
+    const prevProd = document.getElementById("previewProductImage");
+    if (prevProd && prod.image) prevProd.src = prod.image;
 
     const catSelect = document.getElementById("prodFormCategory");
     if (catSelect) {

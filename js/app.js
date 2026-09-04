@@ -431,50 +431,82 @@ class App {
     const orders = window.storeEngine.getAllOrders();
     if (orders.length === 0) {
       container.innerHTML = `
-        <div style="text-align: center; color: var(--text-muted); padding: 4rem 1rem;">
-          <div style="font-size: 3rem; margin-bottom: 1rem;">📦</div>
-          <h3>មិនទាន់មានការកុម្ម៉ង់នៅឡើយទេ</h3>
-          <p>រុករកទំនិញក្នុងហាង និងធ្វើការកុម្ម៉ង់ដំបូងរបស់អ្នកឥឡូវនេះ!</p>
-          <button class="btn btn-primary" style="margin-top: 1.5rem;" onclick="window.app.switchView('marketplace')">🛍️ រុករកហាង</button>
+        <div style="text-align: center; color: var(--text-muted); padding: 4rem 1rem; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 20px;">
+          <div style="font-size: 3.5rem; margin-bottom: 1rem;">📦</div>
+          <h3 style="font-size: 1.25rem; color: #FFFFFF; font-weight: 800; margin-bottom: 0.5rem;">មិនទាន់មានការកុម្ម៉ង់នៅឡើយទេ</h3>
+          <p style="font-size: 0.88rem; color: #94A3B8; max-width: 320px; margin: 0 auto 1.5rem auto;">រុករកទំនិញក្នុងហាង និងធ្វើការកុម្ម៉ង់ដំបូងរបស់អ្នកឥឡូវនេះ!</p>
+          <button class="btn btn-primary" onclick="window.app.switchView('marketplace')">🛍️ រុករកហាងទំនិញ</button>
         </div>
       `;
       return;
     }
 
-    container.innerHTML = orders.map(ord => `
-      <div class="store-card" style="margin-bottom: 1.25rem; padding: 1.25rem; border-radius: 16px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 0.75rem; margin-bottom: 0.75rem;">
-          <div>
-            <h3 style="color: #FFFFFF; font-size: 1.05rem; font-weight: 800;">${ord.storeName}</h3>
-            <span style="font-size: 0.75rem; color: var(--text-muted);">Order #${ord.id} • ${new Date(ord.createdAt).toLocaleString()}</span>
-          </div>
-          <div>
-            <span style="font-size: 0.78rem; font-weight: 700; background: rgba(99, 102, 241, 0.2); color: #A5B4FC; padding: 0.3rem 0.7rem; border-radius: 99px;">
-              ${ord.status}
-            </span>
-          </div>
-        </div>
+    const totalSpent = orders.reduce((sum, o) => sum + o.total, 0);
 
-        <div style="margin-bottom: 0.75rem;">
-          ${ord.items.map(i => `
-            <div style="display: flex; justify-content: space-between; font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 0.3rem;">
-              <span>${i.qty}x <strong>${i.name}</strong> ${i.options?.length ? `<small>(${i.options.join(', ')})</small>` : ''}</span>
-              <span style="color: #FFFFFF; font-weight: 600;">$${i.lineTotal.toFixed(2)}</span>
-            </div>
-          `).join('')}
+    let summaryHtml = `
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; margin-bottom: 1.25rem;">
+        <div style="background: rgba(99, 102, 241, 0.12); border: 1px solid rgba(99, 102, 241, 0.3); border-radius: 14px; padding: 0.85rem; text-align: center;">
+          <div style="font-size: 0.72rem; color: #A5B4FC; font-weight: 700; text-transform: uppercase;">Orders</div>
+          <div style="font-size: 1.4rem; font-weight: 800; color: #FFFFFF;">${orders.length}</div>
         </div>
-
-        <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 0.75rem;">
-          <div style="font-size: 0.8rem; color: var(--text-muted);">
-            ទូទាត់: <strong style="color: ${ord.paymentStatus === 'PAID' ? '#10B981' : '#F59E0B'}">${ord.paymentMethod} (${ord.paymentStatus})</strong>
-          </div>
-          <div style="text-align: right;">
-            <div style="font-size: 1.15rem; font-weight: 800; color: #F59E0B;">$${ord.total.toFixed(2)}</div>
-            <div style="font-size: 0.75rem; color: var(--text-muted);">${ord.totalKhr.toLocaleString()} ៛</div>
-          </div>
+        <div style="background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 14px; padding: 0.85rem; text-align: center;">
+          <div style="font-size: 0.72rem; color: #10B981; font-weight: 700; text-transform: uppercase;">សរុបប្រាក់</div>
+          <div style="font-size: 1.3rem; font-weight: 800; color: #10B981;">$${totalSpent.toFixed(2)}</div>
+        </div>
+        <div style="background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 14px; padding: 0.85rem; text-align: center;">
+          <div style="font-size: 0.72rem; color: #F59E0B; font-weight: 700; text-transform: uppercase;">ស្ថានភាព</div>
+          <div style="font-size: 0.95rem; font-weight: 800; color: #F59E0B; margin-top: 0.3rem;">⚡ LIVE</div>
         </div>
       </div>
-    `).join('');
+    `;
+
+    container.innerHTML = summaryHtml + orders.map(ord => {
+      const isDelivering = ord.status === 'DELIVERING';
+      const isCompleted = ord.status === 'COMPLETED';
+      const statusColor = isCompleted ? '#10B981' : (isDelivering ? '#38BDF8' : '#F59E0B');
+      const statusBg = isCompleted ? 'rgba(16, 185, 129, 0.15)' : (isDelivering ? 'rgba(56, 189, 248, 0.15)' : 'rgba(245, 158, 11, 0.15)');
+
+      return `
+        <div class="store-card" style="margin-bottom: 1.25rem; padding: 1.25rem; border-radius: 18px; background: var(--bg-surface); border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 4px 20px rgba(0,0,0,0.4);">
+          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 0.75rem; margin-bottom: 0.75rem;">
+            <div>
+              <h3 style="color: #FFFFFF; font-size: 1.1rem; font-weight: 800; margin-bottom: 0.15rem;">${ord.storeName}</h3>
+              <span style="font-size: 0.75rem; color: var(--text-muted);">#${ord.id} • ${new Date(ord.createdAt).toLocaleTimeString()} (${new Date(ord.createdAt).toLocaleDateString()})</span>
+            </div>
+            <span style="font-size: 0.78rem; font-weight: 800; background: ${statusBg}; color: ${statusColor}; padding: 0.35rem 0.75rem; border-radius: 99px; border: 1px solid ${statusColor}40;">
+              ${isDelivering ? '🛵 ' : (isCompleted ? '✅ ' : '⏳ ')}${ord.status}
+            </span>
+          </div>
+
+          <div style="margin-bottom: 0.85rem; background: rgba(0,0,0,0.2); padding: 0.75rem; border-radius: 10px;">
+            ${ord.items.map(i => `
+              <div style="display: flex; justify-content: space-between; font-size: 0.85rem; color: #E2E8F0; margin-bottom: 0.35rem;">
+                <span>${i.qty}x <strong>${i.name}</strong> ${i.options?.length ? `<small style="color:#94A3B8;">(${i.options.join(', ')})</small>` : ''}</span>
+                <span style="color: #FFFFFF; font-weight: 700;">$${i.lineTotal.toFixed(2)}</span>
+              </div>
+            `).join('')}
+            <div style="border-top: 1px dashed rgba(255,255,255,0.08); margin-top: 0.4rem; padding-top: 0.4rem; display: flex; justify-content: space-between; font-size: 0.78rem; color: var(--text-muted);">
+              <span>ថ្លៃដឹកជញ្ជូន:</span>
+              <span>$${(ord.deliveryFee || 0).toFixed(2)}</span>
+            </div>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 0.75rem;">
+            <div>
+              <div style="font-size: 0.78rem; color: var(--text-muted);">
+                វិធីទូទាត់: <strong style="color: ${ord.paymentStatus === 'PAID' ? '#10B981' : '#F59E0B'}">${ord.paymentMethod} (${ord.paymentStatus})</strong>
+              </div>
+              <div style="font-size: 1.15rem; font-weight: 800; color: #F59E0B; margin-top: 0.15rem;">
+                $${ord.total.toFixed(2)} <small style="font-size: 0.75rem; color: var(--text-muted); font-weight: normal;">(${ord.totalKhr.toLocaleString()} ៛)</small>
+              </div>
+            </div>
+            <button class="btn btn-secondary btn-sm" style="border-radius: 10px; padding: 0.45rem 0.85rem;" onclick="window.storeView.showOrderTrackingModal(window.storeEngine.getAllOrders().find(o => o.id === '${ord.id}'))">
+              👁️ តាមដាន (Track)
+            </button>
+          </div>
+        </div>
+      `;
+    }).join('');
   }
 
   showToast(message, type = "info") {
