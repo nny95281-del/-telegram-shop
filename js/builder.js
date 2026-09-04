@@ -156,12 +156,18 @@ class StoreBuilder {
     const khqrMerchantEl = document.getElementById("inputKhqrMerchantName");
     const khqrBakongEl = document.getElementById("inputKhqrBakongId");
     const khqrAccountEl = document.getElementById("inputKhqrAccount");
+    const khqrQrInputEl = document.getElementById("inputStoreKhqrQr");
+    const khqrQrPrevEl = document.getElementById("previewStoreKhqrQr");
     const enableKhqrEl = document.getElementById("inputEnableKhqr");
     const enableCodEl = document.getElementById("inputEnableCod");
 
-    if (khqrMerchantEl) khqrMerchantEl.value = store.paymentConfig?.khqrMerchantName || store.name || "";
+    if (khqrMerchantEl) khqrMerchantEl.value = store.paymentConfig?.khqrMerchantName || store.nameKh || store.name || "";
     if (khqrBakongEl) khqrBakongEl.value = store.paymentConfig?.khqrBakongId || "merchant@aba";
-    if (khqrAccountEl) khqrAccountEl.value = store.paymentConfig?.khqrAccountId || "012 345 678";
+    if (khqrAccountEl) khqrAccountEl.value = store.paymentConfig?.khqrAccountId || store.paymentConfig?.accountNumber || "012 345 678";
+    if (khqrQrInputEl) khqrQrInputEl.value = store.paymentConfig?.qrImage || "";
+    if (khqrQrPrevEl && store.paymentConfig?.qrImage) {
+      khqrQrPrevEl.src = store.paymentConfig.qrImage;
+    }
     if (enableKhqrEl) enableKhqrEl.checked = store.paymentConfig?.enableKhqr !== false;
     if (enableCodEl) enableCodEl.checked = store.paymentConfig?.enableCod !== false;
 
@@ -201,6 +207,7 @@ class StoreBuilder {
     const khqrMerchantName = document.getElementById("inputKhqrMerchantName")?.value || store.paymentConfig?.khqrMerchantName;
     const khqrBakongId = document.getElementById("inputKhqrBakongId")?.value || store.paymentConfig?.khqrBakongId;
     const khqrAccountId = document.getElementById("inputKhqrAccount")?.value || store.paymentConfig?.khqrAccountId;
+    const qrImage = document.getElementById("inputStoreKhqrQr")?.value || store.paymentConfig?.qrImage || "";
     const enableKhqr = document.getElementById("inputEnableKhqr") ? document.getElementById("inputEnableKhqr").checked : true;
     const enableCod = document.getElementById("inputEnableCod") ? document.getElementById("inputEnableCod").checked : true;
 
@@ -223,6 +230,7 @@ class StoreBuilder {
         khqrMerchantName,
         khqrBakongId,
         khqrAccountId,
+        qrImage,
         enableKhqr,
         enableCod
       }
@@ -231,6 +239,7 @@ class StoreBuilder {
     const updatedStore = this.getCurrentStore();
     this.updateSimulator(updatedStore);
   }
+
 
   applyPresetTheme(themeKey) {
     if (window.telegramTma) window.telegramTma.hapticImpact("light");
@@ -352,11 +361,27 @@ class StoreBuilder {
         const prevProd = document.getElementById('previewProductImage');
         if (inputProd) inputProd.value = base64Url;
         if (prevProd) prevProd.src = base64Url;
+      } else if (targetType === 'khqrQr') {
+        const inputKhqr = document.getElementById('inputStoreKhqrQr');
+        const prevKhqr = document.getElementById('previewStoreKhqrQr');
+        if (inputKhqr) inputKhqr.value = base64Url;
+        if (prevKhqr) prevKhqr.src = base64Url;
+        this.handleInputChange();
       }
       if (window.telegramTma) window.telegramTma.hapticImpact('medium');
       window.app.showToast('បាន Upload រូបភាពជោគជ័យ!', 'success');
     };
     reader.readAsDataURL(file);
+  }
+
+  openReceiptModal(imgUrl) {
+    if (!imgUrl) return;
+    const modal = document.getElementById("receiptModalOverlay");
+    const img = document.getElementById("receiptModalImg");
+    if (modal && img) {
+      img.src = imgUrl;
+      modal.classList.add("active");
+    }
   }
 
   openAddProductModal() {
@@ -531,6 +556,22 @@ class StoreBuilder {
           ${ord.customer.notes ? `<div style="font-size: 0.78rem; color: #F59E0B; margin-top: 0.2rem;">📝 ចំណាំ: ${ord.customer.notes}</div>` : ''}
         </div>
 
+        <!-- Payment Slip Preview (If customer uploaded receipt) -->
+        ${ord.receiptImage ? `
+          <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(36, 161, 222, 0.1); border: 1px solid rgba(36, 161, 222, 0.3); border-radius: 10px; padding: 0.6rem 0.85rem; margin-bottom: 0.75rem;">
+            <div style="display: flex; align-items: center; gap: 0.65rem;">
+              <img src="${ord.receiptImage}" alt="Receipt" style="width: 38px; height: 38px; border-radius: 6px; object-fit: cover; border: 1px solid rgba(255,255,255,0.2); cursor: pointer;" onclick="window.storeBuilder.openReceiptModal('${ord.receiptImage}')">
+              <div>
+                <div style="font-size: 0.82rem; font-weight: 700; color: #70C5FB;">🧾 បង្កាន់ដៃបង់ប្រាក់ (Payment Slip)</div>
+                <div style="font-size: 0.7rem; color: #94A3B8;">អតិថិជនបានភ្ជាប់រូបវិក្កយបត្រ</div>
+              </div>
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="window.storeBuilder.openReceiptModal('${ord.receiptImage}')" style="font-size: 0.75rem; padding: 0.3rem 0.6rem;">
+              🔍 មើលរូបពេញ
+            </button>
+          </div>
+        ` : ''}
+
         <div style="background: rgba(0,0,0,0.25); padding: 0.75rem; border-radius: 8px; font-size: 0.83rem; margin-bottom: 0.75rem;">
           ${ord.items.map(item => `
             <div style="display: flex; justify-content: space-between; margin-bottom: 0.35rem;">
@@ -560,6 +601,7 @@ class StoreBuilder {
       </div>
     `).join('');
   }
+
 
   renderShareTab(store) {
     const linkInput = document.getElementById("shareStoreUrl");

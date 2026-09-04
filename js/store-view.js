@@ -478,7 +478,81 @@ class StoreView {
 
     document.getElementById("checkoutSummaryTotal").textContent = `$${total.toFixed(2)} (${Math.round(total * 4100).toLocaleString()} ៛)`;
 
+    // Populate Merchant ABA Bank / KHQR Details in Checkout
+    const merchantNameEl = document.getElementById("checkoutMerchantName");
+    const merchantAccEl = document.getElementById("checkoutMerchantAcc");
+    const qrThumbEl = document.getElementById("checkoutStoreQrThumb");
+
+    if (merchantNameEl) {
+      merchantNameEl.textContent = this.currentStore.paymentConfig?.khqrMerchantName || this.currentStore.nameKh || this.currentStore.name;
+    }
+    if (merchantAccEl) {
+      merchantAccEl.textContent = this.currentStore.paymentConfig?.khqrAccountId || this.currentStore.paymentConfig?.accountNumber || "012 345 678";
+    }
+    if (qrThumbEl) {
+      if (this.currentStore.paymentConfig?.qrImage) {
+        qrThumbEl.src = this.currentStore.paymentConfig.qrImage;
+      } else {
+        qrThumbEl.src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=KHQR_${encodeURIComponent(this.currentStore.name)}`;
+      }
+    }
+
+    // Reset receipt uploader
+    this.clearReceiptUpload();
+
     checkoutModal.classList.add("active");
+  }
+
+  handleReceiptUpload(event) {
+    const file = event.target?.files?.[0];
+    if (!file) return;
+
+    if (file.size > 8 * 1024 * 1024) {
+      window.app.showToast("រូបភាពធំពេក សូមជ្រើសរើសរូបក្រោម 8MB", "warning");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const base64Url = e.target.result;
+      const prev = document.getElementById("checkoutReceiptPreview");
+      const placeholder = document.getElementById("checkoutReceiptPlaceholder");
+      const dataInput = document.getElementById("checkoutReceiptData");
+      const clearBtn = document.getElementById("checkoutReceiptClearBtn");
+      const btnText = document.getElementById("checkoutReceiptBtnText");
+
+      if (prev) {
+        prev.src = base64Url;
+        prev.style.display = "block";
+      }
+      if (placeholder) placeholder.style.display = "none";
+      if (dataInput) dataInput.value = base64Url;
+      if (clearBtn) clearBtn.style.display = "inline-block";
+      if (btnText) btnText.textContent = "✓ បានភ្ជាប់បង្កាន់ដៃ";
+
+      if (window.telegramTma) window.telegramTma.hapticImpact("medium");
+      window.app.showToast("បានភ្ជាប់រូបបង្កាន់ដៃបង់ប្រាក់ជោគជ័យ!", "success");
+    };
+    reader.readAsDataURL(file);
+  }
+
+  clearReceiptUpload() {
+    const fileInput = document.getElementById("checkoutReceiptFile");
+    const prev = document.getElementById("checkoutReceiptPreview");
+    const placeholder = document.getElementById("checkoutReceiptPlaceholder");
+    const dataInput = document.getElementById("checkoutReceiptData");
+    const clearBtn = document.getElementById("checkoutReceiptClearBtn");
+    const btnText = document.getElementById("checkoutReceiptBtnText");
+
+    if (fileInput) fileInput.value = "";
+    if (prev) {
+      prev.src = "";
+      prev.style.display = "none";
+    }
+    if (placeholder) placeholder.style.display = "flex";
+    if (dataInput) dataInput.value = "";
+    if (clearBtn) clearBtn.style.display = "none";
+    if (btnText) btnText.textContent = "📁 ជ្រើសរើសរូបបង្កាន់ដៃ";
   }
 
   submitOrder() {
@@ -487,6 +561,7 @@ class StoreView {
     const address = document.getElementById("checkoutCustAddress").value.trim();
     const notes = document.getElementById("checkoutCustNotes").value.trim();
     const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked')?.value || "KHQR";
+    const receiptImage = document.getElementById("checkoutReceiptData")?.value || "";
 
     if (!name || !phone || !address) {
       window.app.showToast(window.storeEngine.t("enterDetails"), "warning");
@@ -514,7 +589,8 @@ class StoreView {
       total,
       customer: { name, phone, address, notes },
       paymentMethod,
-      paymentStatus: paymentMethod === "COD" ? "PENDING" : "PAID"
+      paymentStatus: receiptImage ? "PAID" : (paymentMethod === "COD" ? "PENDING" : "PENDING"),
+      receiptImage
     });
 
     this.activeOrder = newOrder;
@@ -528,7 +604,7 @@ class StoreView {
       window.telegramTma.sendMerchantOrderNotification(newOrder, this.currentStore);
     }
 
-    if (paymentMethod === "KHQR") {
+    if (paymentMethod === "KHQR" && !receiptImage) {
       this.openKhqrPaymentModal(newOrder);
     } else {
       if (window.khqrService) window.khqrService.playSuccessSound();
@@ -541,12 +617,24 @@ class StoreView {
     if (window.telegramTma) window.telegramTma.hapticImpact("medium");
     const modal = document.getElementById("khqrPaymentModal");
     const canvas = document.getElementById("khqrCanvas");
+    const customImg = document.getElementById("khqrCustomImg");
+    const accEl = document.getElementById("khqrModalAccNumber");
 
     document.getElementById("khqrModalStoreName").textContent = this.currentStore.nameKh || this.currentStore.name;
     document.getElementById("khqrModalAmount").textContent = `$${order.total.toFixed(2)}`;
     document.getElementById("khqrModalAmountKhr").textContent = `${order.totalKhr.toLocaleString()} ៛`;
 
-    if (window.khqrService && canvas) {
+    if (accEl) {
+      accEl.textContent = `ABA Acc: ${this.currentStore.paymentConfig?.khqrAccountId || "012 345 678"}`;
+    }
+
+    if (this.currentStore.paymentConfig?.qrImage && customImg) {
+      customImg.src = this.currentStore.paymentConfig.qrImage;
+      customImg.style.display = "block";
+      if (canvas) canvas.style.display = "none";
+    } else if (window.khqrService && canvas) {
+      if (customImg) customImg.style.display = "none";
+      canvas.style.display = "block";
       window.khqrService.renderKhqrCanvas(canvas, {
         merchantName: this.currentStore.paymentConfig?.khqrMerchantName || this.currentStore.name,
         bakongId: this.currentStore.paymentConfig?.khqrBakongId || "merchant@aba",
@@ -626,6 +714,14 @@ class StoreView {
             </span>
           </div>
 
+          <!-- Customer Receipt attached indicator -->
+          ${ord.receiptImage ? `
+            <div style="display: flex; align-items: center; gap: 0.5rem; background: rgba(36,161,222,0.1); border-radius: 8px; padding: 0.4rem 0.65rem; margin-bottom: 0.5rem; font-size: 0.78rem; color: #70C5FB; cursor: pointer;" onclick="window.storeBuilder.openReceiptModal('${ord.receiptImage}')">
+              <img src="${ord.receiptImage}" style="width: 28px; height: 28px; border-radius: 4px; object-fit: cover;">
+              <span>🧾 បានភ្ជាប់បង្កាន់ដៃបង់ប្រាក់ (ចុចមើលរូប)</span>
+            </div>
+          ` : ''}
+
           <div style="margin-bottom: 0.5rem;">
             ${ord.items.map(i => `
               <div style="display: flex; justify-content: space-between; font-size: 0.82rem; color: #CBD5E1; margin-bottom: 0.2rem;">
@@ -645,6 +741,7 @@ class StoreView {
 
     modal.classList.add("active");
   }
+
 }
 
 window.storeView = new StoreView();
