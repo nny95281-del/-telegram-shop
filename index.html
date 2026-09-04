@@ -199,16 +199,30 @@
         <!-- Telegram Direct Store Link Bar for Merchant -->
         <div class="tg-link-card" style="margin-bottom: 1.25rem;">
           <div class="tg-link-header">
-            <span class="tg-badge">✈️ Link Telegram Mini App សម្        <!-- Left Column: Customizer Tabs -->
+            <span class="tg-badge">✈️ Link Telegram Mini App សម្រាប់ភ្ញៀវ</span>
+            <span style="font-size: 0.75rem; color: #70C5FB;">Direct Customer Launch</span>
+          </div>
+          <div class="tg-link-input-group">
+            <input type="text" id="builderTopTgLink" readonly value="https://t.me/omnimini_shop_bot?start=cafe">
+            <button class="btn btn-telegram" onclick="window.telegramTma.shareStoreToTelegram(window.storeBuilder.getCurrentStore())">
+              ✈️ ផ្ញើ Telegram
+            </button>
+            <button class="btn btn-secondary" onclick="navigator.clipboard.writeText(document.getElementById('builderTopTgLink').value); window.app.showToast('បានចម្លង Link Telegram!', 'success');">
+              📋
+            </button>
+          </div>
+        </div>
+
+        <!-- Left Column: Customizer Tabs -->
         <div class="builder-controls-panel">
           <div class="builder-nav-tabs">
-            <button class="builder-tab-btn" data-tab="products" onclick="window.storeBuilder.switchTab('products')">
+            <button class="builder-tab-btn active" data-tab="products" onclick="window.storeBuilder.switchTab('products')">
               📦 <span data-i18n="tabProducts">ទំនិញ & Menu</span>
             </button>
             <button class="builder-tab-btn" data-tab="payment" onclick="window.storeBuilder.switchTab('payment')">
               💳 <span data-i18n="tabPayment">ABA & KHQR</span>
             </button>
-            <button class="builder-tab-btn active" data-tab="identity" onclick="window.storeBuilder.switchTab('identity')">
+            <button class="builder-tab-btn" data-tab="identity" onclick="window.storeBuilder.switchTab('identity')">
               🎨 <span data-i18n="tabIdentity">Theme & ម៉ាក</span>
             </button>
             <button class="builder-tab-btn" data-tab="orders" onclick="window.storeBuilder.switchTab('orders')">
@@ -221,6 +235,7 @@
               🔗 <span data-i18n="tabShare">Link ហាង</span>
             </button>
           </div>
+
 
           <div class="builder-tab-content">
             
