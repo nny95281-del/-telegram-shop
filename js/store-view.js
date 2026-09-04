@@ -176,22 +176,23 @@ class StoreView {
   renderProductCard(product, lang) {
     const pName = (lang === 'km' && product.nameKh) ? product.nameKh : product.name;
     const pDesc = (lang === 'km' && product.descriptionKh) ? product.descriptionKh : product.description;
+    const priceKhr = Math.round(product.price * 4100);
 
     return `
       <div class="runtime-product-card" onclick="window.storeView.openProductDetailModal('${product.id}')">
         <div class="runtime-product-img-wrap">
-          <img src="${product.image}" class="runtime-product-img" alt="${pName}" loading="lazy">
+          <img src="${product.image}" class="runtime-product-img" alt="${pName}" loading="lazy" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1541643600914-78b084683601?w=600&auto=format&fit=crop&q=80'">
           ${product.badge ? `<span class="runtime-product-badge">${product.badge}</span>` : ''}
         </div>
         <div class="runtime-product-body">
-          <div class="runtime-product-name">${pName}</div>
+          <div class="runtime-product-name" title="${pName}">${pName}</div>
           <div class="runtime-product-desc">${pDesc || ''}</div>
           <div class="runtime-product-footer">
             <div class="runtime-price-group">
               <span class="runtime-price-main">$${product.price.toFixed(2)}</span>
-              ${product.originalPrice ? `<span class="runtime-price-old">$${product.originalPrice.toFixed(2)}</span>` : ''}
+              <span class="runtime-price-khr">${priceKhr.toLocaleString()} ៛</span>
             </div>
-            <button class="runtime-add-btn" onclick="event.stopPropagation(); window.storeView.quickAddToCart('${product.id}')">+</button>
+            <button class="runtime-add-btn" onclick="event.stopPropagation(); window.storeView.quickAddToCart('${product.id}')" title="Add to Cart">+</button>
           </div>
         </div>
       </div>

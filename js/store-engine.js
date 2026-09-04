@@ -4,8 +4,8 @@
 
 class StoreEngine {
   constructor() {
-    this.STORAGE_KEY_STORES = "omnimini_stores_v1";
-    this.STORAGE_KEY_ORDERS = "omnimini_orders_v1";
+    this.STORAGE_KEY_STORES = "omnimini_stores_v2";
+    this.STORAGE_KEY_ORDERS = "omnimini_orders_v2";
     this.STORAGE_KEY_ACTIVE_STORE = "omnimini_active_store_id";
     this.STORAGE_KEY_LANG = "omnimini_lang";
     
