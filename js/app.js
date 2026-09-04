@@ -57,11 +57,14 @@ class App {
     this.updateOrderBadge();
   }
 
-  checkTelegramStartParam() {
+  async checkTelegramStartParam() {
     if (window.telegramTma) {
       const startParam = window.telegramTma.getStartParam();
       if (startParam) {
-        const store = window.storeEngine.getStoreBySlug(startParam) || window.storeEngine.getStoreById(startParam);
+        let store = window.storeEngine.getStoreBySlug(startParam) || window.storeEngine.getStoreById(startParam);
+        if (!store) {
+          store = await window.storeEngine.fetchStoreBySlugAsync(startParam);
+        }
         if (store) {
           this.isCustomerDirectLaunch = true;
           this.openStoreMiniApp(store.id, true);
@@ -86,7 +89,7 @@ class App {
     `;
   }
 
-  handleHashRoute() {
+  async handleHashRoute() {
     const hash = window.location.hash.replace("#", "");
     if (!hash) {
       if (this.currentView !== "store") {
@@ -98,7 +101,10 @@ class App {
     const params = new URLSearchParams(hash);
     if (params.has("store")) {
       const storeSlug = params.get("store");
-      const store = window.storeEngine.getStoreBySlug(storeSlug) || window.storeEngine.getStoreById(storeSlug);
+      let store = window.storeEngine.getStoreBySlug(storeSlug) || window.storeEngine.getStoreById(storeSlug);
+      if (!store) {
+        store = await window.storeEngine.fetchStoreBySlugAsync(storeSlug);
+      }
       if (store) {
         this.isCustomerDirectLaunch = true;
         this.openStoreMiniApp(store.id, true);

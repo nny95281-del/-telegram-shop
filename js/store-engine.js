@@ -1,5 +1,6 @@
 /**
  * StoreEngine - Central Data Store & Multi-Tenant State Manager
+ * Real-Time Cloud Sync (Enables Cross-Device Merchant & Customer Store Sharing)
  */
 
 class StoreEngine {
@@ -11,6 +12,8 @@ class StoreEngine {
     
     this.lang = localStorage.getItem(this.STORAGE_KEY_LANG) || "km";
     this.listeners = [];
+    this.stores = [];
+    this.orders = [];
     this.initData();
   }
 
@@ -18,44 +21,18 @@ class StoreEngine {
     const rawStores = localStorage.getItem(this.STORAGE_KEY_STORES);
     if (!rawStores) {
       this.stores = JSON.parse(JSON.stringify(DEFAULT_STORES));
-      this.saveStores();
+      this.saveStores(false);
     } else {
       try {
         this.stores = JSON.parse(rawStores);
       } catch (e) {
         this.stores = JSON.parse(JSON.stringify(DEFAULT_STORES));
-        this.saveStores();
       }
     }
 
     const rawOrders = localStorage.getItem(this.STORAGE_KEY_ORDERS);
     if (!rawOrders) {
-      this.orders = [
-        {
-          id: "ORD-9821",
-          storeId: "store_koi_cafe",
-          storeName: "KOI & Artisan Café",
-          items: [
-            { id: "prod_1", name: "Iced Caramel Macchiato", price: 3.50, qty: 2, options: ["Large (L) (+$0.75)", "50% Sugar", "Cheese Cream Foam (+$0.65)"], lineTotal: 9.80 },
-            { id: "prod_4", name: "Butter French Croissant", price: 2.50, qty: 1, options: [], lineTotal: 2.50 }
-          ],
-          subtotal: 12.30,
-          deliveryFee: 1.25,
-          total: 13.55,
-          totalKhr: Math.round(13.55 * 4100),
-          customer: {
-            name: "Sokha Mean",
-            phone: "012 345 678",
-            address: "Condo De Castle, Toul Kork, Phnom Penh",
-            notes: "Please call when downstairs"
-          },
-          paymentMethod: "KHQR",
-          paymentStatus: "PAID",
-          status: "DELIVERING", // PENDING, PREPARING, DELIVERING, COMPLETED
-          createdAt: new Date(Date.now() - 25 * 60 * 1000).toISOString()
-        }
-      ];
-      this.saveOrders();
+      this.orders = [];
     } else {
       try {
         this.orders = JSON.parse(rawOrders);
@@ -63,11 +40,47 @@ class StoreEngine {
         this.orders = [];
       }
     }
+
+    // Sync stores from Cloud Server
+    this.syncFromCloudServer();
   }
 
-  saveStores() {
+  async syncFromCloudServer() {
+    try {
+      const res = await fetch('/api/stores');
+      const data = await res.json();
+      if (data && data.ok && Array.isArray(data.stores)) {
+        // Merge cloud stores with local
+        data.stores.forEach(cloudStore => {
+          const idx = this.stores.findIndex(s => s.id === cloudStore.id || s.slug === cloudStore.slug);
+          if (idx > -1) {
+            this.stores[idx] = { ...this.stores[idx], ...cloudStore };
+          } else {
+            this.stores.unshift(cloudStore);
+          }
+        });
+        localStorage.setItem(this.STORAGE_KEY_STORES, JSON.stringify(this.stores));
+        this.notify("stores_updated", this.stores);
+      }
+    } catch (e) {
+      console.warn("Could not sync stores from server:", e);
+    }
+  }
+
+  saveStores(syncToCloud = true) {
     localStorage.setItem(this.STORAGE_KEY_STORES, JSON.stringify(this.stores));
     this.notify("stores_updated", this.stores);
+
+    if (syncToCloud && this.stores.length > 0) {
+      // Sync active/latest store to cloud
+      this.stores.forEach(s => {
+        fetch('/api/stores', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(s)
+        }).catch(() => {});
+      });
+    }
   }
 
   saveOrders() {
@@ -108,7 +121,30 @@ class StoreEngine {
   }
 
   getStoreBySlug(slug) {
-    return this.stores.find(s => s.slug === slug) || null;
+    if (!slug) return null;
+    const lower = slug.toLowerCase();
+    return this.stores.find(s => s.slug?.toLowerCase() === lower || s.id?.toLowerCase() === lower) || null;
+  }
+
+  // Asynchronous cloud fetch for deep customer links
+  async fetchStoreBySlugAsync(slug) {
+    if (!slug) return null;
+    const local = this.getStoreBySlug(slug);
+    if (local) return local;
+
+    try {
+      const res = await fetch(`/api/stores/${encodeURIComponent(slug)}`);
+      const data = await res.json();
+      if (data && data.ok && data.store) {
+        this.stores.unshift(data.store);
+        localStorage.setItem(this.STORAGE_KEY_STORES, JSON.stringify(this.stores));
+        this.notify("stores_updated", this.stores);
+        return data.store;
+      }
+    } catch (e) {
+      console.warn("Cloud store fetch error:", e);
+    }
+    return null;
   }
 
   createStore(storeData) {
@@ -127,20 +163,20 @@ class StoreEngine {
       tagline: storeData.tagline || "Welcome to our store!",
       taglineKh: storeData.taglineKh || "សូមស្វាគមន៍មកកាន់ហាងយើងខ្ញុំ!",
       category: storeData.category || "cafe",
-      logo: storeData.logo || "https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=200&auto=format&fit=crop&q=80",
+      logo: storeData.logo || "https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=240&auto=format&fit=crop&q=80",
       banner: storeData.banner || "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=1200&auto=format&fit=crop&q=80",
       theme: {
         primaryColor: storeData.primaryColor || "#0F766E",
         secondaryColor: storeData.secondaryColor || "#14B8A6",
         accentColor: storeData.accentColor || "#F59E0B",
-        bgColor: "#0F172A",
+        bgColor: "#0B0F19",
         textColor: "#F8FAFC",
-        cardBg: "#1E293B",
-        fontFamily: "Inter, 'Kantumruy Pro', sans-serif",
+        cardBg: "#111827",
+        fontFamily: "'Plus Jakarta Sans', 'Kantumruy Pro', sans-serif",
         borderRadius: "16px"
       },
       blocks: [
-        { id: "b_hero", type: "hero_banner", enabled: true, title: "Special Opening Promo! 🎉", subtitle: "Enjoy 20% OFF your first order", image: "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=1000&auto=format&fit=crop&q=80" },
+        { id: "b_hero", type: "hero_banner", enabled: true, title: "Special Opening Promo! 🎉", subtitle: "Welcome to our official Telegram store", image: "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=1000&auto=format&fit=crop&q=80" },
         { id: "b_announce", type: "announcement", enabled: true, text: "🎉 សូមស្វាគមន៍មកកាន់ Mini App ហាងយើងខ្ញុំ!" },
         { id: "b_categories", type: "category_bar", enabled: true },
         { id: "b_all", type: "product_grid", enabled: true, title: "មុខទំនិញទាំងអស់ / All Products" },
@@ -154,11 +190,11 @@ class StoreEngine {
         {
           id: "prod_init_1",
           categoryId: "cat_main",
-          name: "Sample Signature Product",
-          nameKh: "ទំនិញគំរូប្រចាំហាង",
+          name: "Signature Item",
+          nameKh: "ទំនិញពិសេសប្រចាំហាង",
           price: 5.00,
           originalPrice: 6.50,
-          image: "https://images.unsplash.com/photo-1541643600914-78b084683601?w=500&auto=format&fit=crop&q=80",
+          image: "https://images.unsplash.com/photo-1541643600914-78b084683601?w=600&auto=format&fit=crop&q=80",
           description: "High quality signature product curated for our loyal customers.",
           descriptionKh: "ទំនិញគុណភាពខ្ពស់ដែលបានជ្រើសរើសយ៉ាងពិសេសសម្រាប់អតិថិជន។",
           badge: "FEATURED",
@@ -181,7 +217,7 @@ class StoreEngine {
     };
 
     this.stores.unshift(newStore);
-    this.saveStores();
+    this.saveStores(true);
     return newStore;
   }
 
@@ -202,16 +238,16 @@ class StoreEngine {
       }
     };
 
-    this.saveStores();
+    this.saveStores(true);
     return this.stores[idx];
   }
 
   deleteStore(storeId) {
     this.stores = this.stores.filter(s => s.id !== storeId);
-    this.saveStores();
+    this.saveStores(true);
   }
 
-  // Product CRUD within a store
+  // Product CRUD
   addProduct(storeId, productData) {
     const store = this.getStoreById(storeId);
     if (!store) return null;
@@ -223,7 +259,7 @@ class StoreEngine {
       nameKh: productData.nameKh || productData.name || "ទំនិញថ្មី",
       price: parseFloat(productData.price) || 1.00,
       originalPrice: productData.originalPrice ? parseFloat(productData.originalPrice) : null,
-      image: productData.image || "https://images.unsplash.com/photo-1541643600914-78b084683601?w=500&auto=format&fit=crop&q=80",
+      image: productData.image || "https://images.unsplash.com/photo-1541643600914-78b084683601?w=600&auto=format&fit=crop&q=80",
       description: productData.description || "",
       descriptionKh: productData.descriptionKh || "",
       badge: productData.badge || "",
@@ -231,7 +267,7 @@ class StoreEngine {
     };
 
     store.products.unshift(newProduct);
-    this.saveStores();
+    this.saveStores(true);
     return newProduct;
   }
 
@@ -249,7 +285,7 @@ class StoreEngine {
       originalPrice: productData.originalPrice !== undefined ? (productData.originalPrice ? parseFloat(productData.originalPrice) : null) : store.products[pIdx].originalPrice
     };
 
-    this.saveStores();
+    this.saveStores(true);
     return store.products[pIdx];
   }
 
@@ -258,24 +294,8 @@ class StoreEngine {
     if (!store) return false;
 
     store.products = store.products.filter(p => p.id !== productId);
-    this.saveStores();
+    this.saveStores(true);
     return true;
-  }
-
-  // Categories CRUD
-  addCategory(storeId, catName, catIcon = "🏷️") {
-    const store = this.getStoreById(storeId);
-    if (!store) return null;
-
-    const newCat = {
-      id: "cat_" + Date.now(),
-      name: catName,
-      icon: catIcon
-    };
-
-    store.categories.push(newCat);
-    this.saveStores();
-    return newCat;
   }
 
   // Orders Management
@@ -286,7 +306,7 @@ class StoreEngine {
     const newOrder = {
       id: orderId,
       storeId: orderData.storeId,
-      storeName: store ? store.name : "Mini App Store",
+      storeName: store ? (store.nameKh || store.name) : "Mini App Store",
       items: orderData.items,
       subtotal: orderData.subtotal,
       deliveryFee: orderData.deliveryFee || 0,
@@ -302,11 +322,17 @@ class StoreEngine {
     this.orders.unshift(newOrder);
     this.saveOrders();
 
-    // Increment store orders count
     if (store) {
       store.ordersCount = (store.ordersCount || 0) + 1;
-      this.saveStores();
+      this.saveStores(true);
     }
+
+    // Sync order to Cloud Server
+    fetch('/api/orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newOrder)
+    }).catch(() => {});
 
     return newOrder;
   }
@@ -329,13 +355,6 @@ class StoreEngine {
 
   getAllOrders() {
     return this.orders;
-  }
-
-  resetToDefault() {
-    localStorage.removeItem(this.STORAGE_KEY_STORES);
-    localStorage.removeItem(this.STORAGE_KEY_ORDERS);
-    this.initData();
-    this.notify("reset_all", null);
   }
 }
 
