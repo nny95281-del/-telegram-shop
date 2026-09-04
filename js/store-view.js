@@ -10,10 +10,12 @@ class StoreView {
     this.activeOrder = null;
   }
 
-  setStore(store) {
+  setStore(store, resetCart = false) {
+    if (this.currentStore?.id !== store?.id || resetCart) {
+      this.cart = [];
+      this.activeCategory = "all";
+    }
     this.currentStore = store;
-    this.cart = [];
-    this.activeCategory = "all";
   }
 
   generateStoreHtml(store, isSimulator = false) {
@@ -410,20 +412,29 @@ class StoreView {
       return;
     }
 
-    itemsContainer.innerHTML = this.cart.map((item, idx) => `
-      <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 0; border-bottom: 1px solid rgba(255,255,255,0.08);">
-        <div style="flex: 1;">
-          <strong style="color: #FFFFFF; font-size: 0.9rem;">${item.product.name}</strong>
-          ${item.selectedOptions.length > 0 ? `<div style="font-size: 0.72rem; color: var(--text-muted);">${item.selectedOptions.join(', ')}</div>` : ''}
-          <div style="color: var(--accent-gold); font-size: 0.85rem; font-weight: 700;">$${item.unitPrice.toFixed(2)}</div>
+    itemsContainer.innerHTML = this.cart.map((item, idx) => {
+      const pName = (window.storeEngine.lang === 'km' && item.product.nameKh) ? item.product.nameKh : item.product.name;
+      const lineTotalKhr = Math.round(item.lineTotal * 4100);
+
+      return `
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 0; border-bottom: 1px solid rgba(255,255,255,0.08); gap: 0.75rem;">
+          <img src="${item.product.image}" alt="${pName}" style="width: 48px; height: 48px; border-radius: 10px; object-fit: cover; border: 1px solid rgba(255,255,255,0.1); flex-shrink: 0;" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1541643600914-78b084683601?w=200&auto=format&fit=crop&q=80'">
+          <div style="flex: 1; min-width: 0;">
+            <div style="color: #FFFFFF; font-size: 0.9rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${pName}</div>
+            ${item.selectedOptions.length > 0 ? `<div style="font-size: 0.72rem; color: #94A3B8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.selectedOptions.join(', ')}</div>` : ''}
+            <div style="display: flex; align-items: baseline; gap: 0.35rem; margin-top: 0.15rem;">
+              <span style="color: #F59E0B; font-size: 0.88rem; font-weight: 800;">$${item.lineTotal.toFixed(2)}</span>
+              <span style="font-size: 0.68rem; color: #64748B;">(${lineTotalKhr.toLocaleString()} ៛)</span>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 0.4rem; background: rgba(255,255,255,0.06); padding: 0.2rem 0.4rem; border-radius: 8px;">
+            <button class="btn btn-secondary btn-sm" style="width: 26px; height: 26px; padding: 0; border-radius: 6px; font-weight: 800;" onclick="window.storeView.updateCartQty(${idx}, -1)">-</button>
+            <span style="font-weight: 800; width: 22px; text-align: center; color: #FFFFFF; font-size: 0.9rem;">${item.qty}</span>
+            <button class="btn btn-secondary btn-sm" style="width: 26px; height: 26px; padding: 0; border-radius: 6px; font-weight: 800;" onclick="window.storeView.updateCartQty(${idx}, 1)">+</button>
+          </div>
         </div>
-        <div style="display: flex; align-items: center; gap: 0.5rem;">
-          <button class="btn btn-secondary btn-sm" style="width: 28px; height: 28px; padding: 0;" onclick="window.storeView.updateCartQty(${idx}, -1)">-</button>
-          <span style="font-weight: 700; width: 20px; text-align: center;">${item.qty}</span>
-          <button class="btn btn-secondary btn-sm" style="width: 28px; height: 28px; padding: 0;" onclick="window.storeView.updateCartQty(${idx}, 1)">+</button>
-        </div>
-      </div>
-    `).join('');
+      `;
+    }).join('');
 
     const subtotal = this.cart.reduce((s, i) => s + i.lineTotal, 0);
     const deliveryFee = this.currentStore.deliveryFee || 1.00;
