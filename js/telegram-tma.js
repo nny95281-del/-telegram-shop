@@ -107,17 +107,27 @@ class TelegramTmaService {
   }
 
   getTelegramStoreLink(storeSlug) {
+    if (!storeSlug) return `https://t.me/${this.botUsername}`;
+    return `https://t.me/${this.botUsername}?start=${encodeURIComponent(storeSlug)}`;
+  }
+
+  getTelegramDirectAppUrl(storeSlug) {
+    if (!storeSlug) return `https://t.me/${this.botUsername}/app`;
+    return `https://t.me/${this.botUsername}/app?startapp=${encodeURIComponent(storeSlug)}`;
+  }
+
+  getWebStoreLink(storeSlug) {
     return `https://telegram-shop-6m0d.onrender.com/#store=${storeSlug}`;
   }
 
   shareStoreToTelegram(store) {
     if (!store) return;
     this.hapticImpact("light");
-    const link = this.getTelegramStoreLink(store.slug || store.id);
+    const tgBotLink = this.getTelegramStoreLink(store.slug || store.id);
     const storeName = store.nameKh || store.name;
-    const text = encodeURIComponent(`🛍️ សូមស្វាគមន៍មកកាន់ ${storeName}!\n\n👇 ចុច Link ខាងក្រោមដើម្បីចូលទិញទំនិញ និងទូទាត់តាម Bakong KHQR បានភ្លាមៗ៖\n${link}`);
+    const text = encodeURIComponent(`🛍️ សូមស្វាគមន៍មកកាន់ Mini App **${storeName}**!\n\n👇 ចុច Link ខាងក្រោមដើម្បីបើក Mini App ក្នុង Telegram និងទូទាត់តាម Bakong KHQR បានភ្លាមៗ៖\n${tgBotLink}`);
     
-    const telegramShareUrl = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${text}`;
+    const telegramShareUrl = `https://t.me/share/url?url=${encodeURIComponent(tgBotLink)}&text=${text}`;
 
     if (this.tg && this.tg.openTelegramLink) {
       this.tg.openTelegramLink(telegramShareUrl);
