@@ -12,7 +12,7 @@ const https = require('https');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const BOT_TOKEN = process.env.BOT_TOKEN || '8154757152:AAHG-4c8LdtbEzm6cbQ7-YOm_Kd5xrJpvBo';
-const WEB_APP_URL = process.env.WEB_APP_URL || 'https://gleaming-pastelito-d49af0.netlify.app';
+const WEB_APP_URL = process.env.WEB_APP_URL || 'https://telegram-shop-6m0d.onrender.com';
 const MERCHANT_CHAT_ID = process.env.MERCHANT_CHAT_ID || null;
 
 // Middleware
